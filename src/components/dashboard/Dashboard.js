@@ -41,7 +41,7 @@ const Dashboard = ({
         <div className="bg-green-50 p-6 rounded-lg border border-green-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-green-600 text-sm font-medium">Today's Revenue</p>
+              <p className="text-green-600 text-sm font-medium">Today&apos;s Revenue</p>
               <p className="text-2xl font-bold text-green-800">{formatRupiah(todayRevenue)}</p>
             </div>
             <DollarSign className="w-8 h-8 text-green-600" />
