@@ -84,7 +84,7 @@ const DashboardStats = ({ computers, activeSessions, customers, orders, stock, t
       <div className="bg-white rounded-lg shadow-md p-6">
         <div className="flex justify-between items-start">
           <div>
-            <p className="text-sm font-medium text-gray-600">Today's Revenue</p>
+            <p className="text-sm font-medium text-gray-600">Today&apos;s Revenue</p>
             <div className="flex items-end mt-1">
               <p className="text-2xl font-bold text-gray-900">{formatCurrency(todayRevenue)}</p>
             </div>
@@ -161,7 +161,7 @@ const DashboardStats = ({ computers, activeSessions, customers, orders, stock, t
             </div>
           ) : (
             <div className="flex items-center text-green-600">
-              // Around line 87, replace the unescaped apostrophe
+              {/* Today's revenue compared to yesterday */}
               <p className="text-sm text-gray-500">Today&apos;s revenue compared to yesterday</p>
               <Check className="w-4 h-4 mr-1" />
               <span className="text-sm font-medium">All orders fulfilled</span>
