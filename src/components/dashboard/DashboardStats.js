@@ -1,5 +1,5 @@
 import React from 'react';
-import { TrendingUp, TrendingDown, Users, Monitor, Coffee, DollarSign, Clock, AlertTriangle } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, Package, Coffee, Users, Monitor, Clock, AlertTriangle, Check } from 'lucide-react';
 
 const DashboardStats = ({ computers, activeSessions, customers, orders, stock, transactions }) => {
   // Format currency
@@ -161,6 +161,8 @@ const DashboardStats = ({ computers, activeSessions, customers, orders, stock, t
             </div>
           ) : (
             <div className="flex items-center text-green-600">
+              // Around line 87, replace the unescaped apostrophe
+              <p className="text-sm text-gray-500">Today&apos;s revenue compared to yesterday</p>
               <Check className="w-4 h-4 mr-1" />
               <span className="text-sm font-medium">All orders fulfilled</span>
             </div>
