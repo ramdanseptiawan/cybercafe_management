@@ -1,5 +1,5 @@
 import React from 'react';
-import { Coffee, Users, LogOut, Monitor, Clock, Settings, Menu as MenuIcon, Package, ShoppingCart, FileText, DollarSign, TrendingUp, UserPlus } from 'lucide-react';
+import { Coffee, Users, LogOut, Monitor, Clock, Settings, Menu as MenuIcon, Package, ShoppingCart, FileText, DollarSign, TrendingUp, UserPlus, Clipboard } from 'lucide-react';
 
 const Sidebar = ({ user, logout, isAdmin, activeTab, setActiveTab, sidebarCollapsed, setSidebarCollapsed }) => {
   return (
@@ -127,6 +127,23 @@ const Sidebar = ({ user, logout, isAdmin, activeTab, setActiveTab, sidebarCollap
           <FileText className="w-5 h-5 mr-3" />
           {!sidebarCollapsed && <span>Reports</span>}
         </button>
+        
+        {/* Add new Staff Management section */}
+        <div className={`px-4 mt-6 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider ${sidebarCollapsed ? 'sr-only' : ''}`}>
+          Staff Management
+        </div>
+        <button 
+          onClick={() => setActiveTab('attendance')}
+          className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'px-4'} py-3 w-full text-left ${
+            activeTab === 'attendance' ? 'bg-gray-700' : 'hover:bg-gray-700'
+          }`}
+          title="Attendance"
+        >
+          <Clipboard className="w-5 h-5 mr-3" />
+          {!sidebarCollapsed && <span>Attendance</span>}
+        </button>
+        
+        {/* Rest of the sidebar items */}
         
         {isAdmin && (
           <>

@@ -10,6 +10,7 @@ import ComputerManagement from '../computers/ComputerManagement';
 import SessionManagement from '../sessions/SessionManagement';
 import CustomerManagement from '../customers/CustomerManagement';
 import KitchenManagement from '../kitchen/KitchenManagement';
+import AttendanceManagement from '../attendance/AttendanceManagement';
 import StockModal from '../modals/StockModal';
 import MenuModal from '../modals/MenuModal';
 import TransactionModal from '../modals/TransactionModal';
@@ -125,6 +126,7 @@ const MainLayout = ({ user, logout, isAdmin, state, handlers, modals }) => {
               </div>
             </>
           )}
+          
           {activeTab === 'stock' && 
             <StockManagement 
               stock={stock} 
@@ -254,6 +256,7 @@ const MainLayout = ({ user, logout, isAdmin, state, handlers, modals }) => {
               </div>
             </div>
           )}
+          {activeTab === 'attendance' && <AttendanceManagement />}
         </main>
       </div>
 
