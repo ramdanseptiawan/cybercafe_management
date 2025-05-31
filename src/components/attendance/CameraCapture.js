@@ -4,12 +4,12 @@ import { Camera, Upload, RotateCcw, X, MapPin, Clock, CheckCircle } from 'lucide
 import { useCamera } from '../../hooks/useCamera';
 import { useGeolocation } from '../../hooks/useGeolocation';
 
-const CameraCapture = ({ onPhotoCapture, onCancel }) => {
+const CameraCapture = ({ onPhotoCapture, onClose }) => {
   const {
     videoRef,
     canvasRef,
-    isStreaming,
     capturedPhoto,
+    isStreaming,
     error,
     devices,
     uploading,
@@ -21,13 +21,15 @@ const CameraCapture = ({ onPhotoCapture, onCancel }) => {
     retakePhoto
   } = useCamera();
 
-  const { getCurrentLocation } = useGeolocation();
+  const { getCurrentLocation, validateMultipleLocations } = useGeolocation();
   const [showPreview, setShowPreview] = useState(false);
   const [uploadStatus, setUploadStatus] = useState('');
   const [captureTime, setCaptureTime] = useState('');
   const [captureLocation, setCaptureLocation] = useState(null);
   const [captureAddress, setCaptureAddress] = useState('');
   const [captureAccuracy, setCaptureAccuracy] = useState(null);
+  const [locationValidation, setLocationValidation] = useState(null);
+  const [captureDistance, setCaptureDistance] = useState(null);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
 
   useEffect(() => {
@@ -49,22 +51,33 @@ const CameraCapture = ({ onPhotoCapture, onCancel }) => {
     return `${day}:${month}:${year} ${hours}:${minutes}:${seconds}`;
   };
 
+  // Lokasi yang diizinkan (sama seperti di AttendanceCheckIn)
+  const allowedLocations = [
+    {
+      name: 'Main Office',
+      latitude: -6.3353889,
+      longitude: 106.4733848,
+      radius: 100
+    },
+    {
+      name: 'Branch Office',
+      latitude: -6.2000,
+      longitude: 106.8400,
+      radius: 100
+    }
+  ];
+
   const handleCapture = async () => {
-    // Get current location first
     setIsGettingLocation(true);
-    let currentLocationData = null;
     
     try {
-      currentLocationData = await getCurrentLocation();
-    } catch (error) {
-      console.log('Location error:', error);
-    }
-    setIsGettingLocation(false);
-
-    // Then capture photo
-    const photoData = capturePhoto();
-    if (photoData) {
-      // Store capture data with current location and formatted timestamp
+      const currentLocationData = await getCurrentLocation();
+      
+      // Validasi lokasi untuk mendapatkan jarak
+      const validation = validateMultipleLocations(allowedLocations);
+      setLocationValidation(validation);
+      
+      // Store capture data dengan informasi jarak dari validasi
       setCaptureTime(formatTimestamp());
       
       if (currentLocationData) {
@@ -73,13 +86,29 @@ const CameraCapture = ({ onPhotoCapture, onCancel }) => {
           longitude: currentLocationData.longitude
         });
         setCaptureAddress(currentLocationData.address || 'Lokasi tidak tersedia');
-        setCaptureAccuracy(currentLocationData.accuracy);
+        
+        // Ambil jarak dari hasil validasi
+        if (validation && validation.distance !== undefined) {
+          setCaptureDistance(Math.round(validation.distance * 10) / 10); // Bulatkan ke 1 desimal
+        } else {
+          setCaptureDistance(null);
+        }
       } else {
         setCaptureLocation(null);
         setCaptureAddress('Lokasi tidak tersedia');
-        setCaptureAccuracy(null);
+        setCaptureDistance(null);
       }
-      
+    } catch (error) {
+      console.error('Error getting location:', error);
+      setCaptureLocation(null);
+      setCaptureAddress('Lokasi tidak tersedia');
+      setCaptureDistance(null);
+    }
+    setIsGettingLocation(false);
+
+    // Then capture photo
+    const photoData = capturePhoto();
+    if (photoData) {
       if (onPhotoCapture) {
         onPhotoCapture(photoData);
       }
@@ -173,10 +202,11 @@ const CameraCapture = ({ onPhotoCapture, onCancel }) => {
                 <Clock className="w-3 h-3" />
                 <span>{captureTime}</span>
               </div>
+              // Di bagian overlay foto:
               {captureLocation && (
                 <div className="text-xs opacity-75">
                   {captureLocation.latitude.toFixed(6)}, {captureLocation.longitude.toFixed(6)}
-                  {captureAccuracy && ` (±${Math.round(captureAccuracy)}m)`}
+                  {captureDistance !== null && ` (${captureDistance}m dari kantor)`}
                 </div>
               )}
             </div>
