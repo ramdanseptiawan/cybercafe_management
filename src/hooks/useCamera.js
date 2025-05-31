@@ -1,110 +1,96 @@
-"use client";
 import { useState, useRef, useCallback } from 'react';
 
 export const useCamera = () => {
-  const [isCapturing, setIsCapturing] = useState(false);
-  const [capturedImage, setCapturedImage] = useState(null);
-  const [error, setError] = useState(null);
-  const [autoCapturing, setAutoCapturing] = useState(false);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
-  const streamRef = useRef(null);
-  const autoCaptureTimerRef = useRef(null);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [capturedPhoto, setCapturedPhoto] = useState(null);
+  const [error, setError] = useState('');
+  const [devices, setDevices] = useState([]);
+  const [selectedDevice, setSelectedDevice] = useState('');
+  const [uploading, setUploading] = useState(false);
 
-  const startCamera = useCallback(async (autoCapture = false) => {
+  const getVideoDevices = async () => {
     try {
-      setError(null);
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'user', // Front camera for selfie
-          width: { ideal: 640 },
-          height: { ideal: 480 }
-        }
-      });
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        streamRef.current = stream;
-        setIsCapturing(true);
-        
-        // Auto capture after 3 seconds if enabled
-        if (autoCapture) {
-          setAutoCapturing(true);
-          autoCaptureTimerRef.current = setTimeout(() => {
-            capturePhoto();
-            setAutoCapturing(false);
-          }, 3000);
-        }
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(device => device.kind === 'videoinput');
+      setDevices(videoDevices);
+      if (videoDevices.length > 0 && !selectedDevice) {
+        setSelectedDevice(videoDevices[0].deviceId);
       }
     } catch (err) {
-      setError('Camera access denied or not available');
-      console.error('Camera error:', err);
+      console.error('Error getting devices:', err);
     }
-  }, []);
+  };
+
+  const startCamera = async () => {
+    try {
+      setError('');
+      await getVideoDevices();
+      
+      const constraints = {
+        video: {
+          deviceId: selectedDevice ? { exact: selectedDevice } : undefined,
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: 'user' // Front camera for selfie
+        },
+        audio: false
+      };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        setIsStreaming(true);
+      }
+    } catch (err) {
+      setError('Tidak dapat mengakses kamera: ' + err.message);
+      console.error('Error accessing camera:', err);
+    }
+  };
+
+  const stopCamera = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const tracks = videoRef.current.srcObject.getTracks();
+      tracks.forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
+    setIsStreaming(false);
+  };
 
   const capturePhoto = useCallback(() => {
-    if (videoRef.current && canvasRef.current) {
-      const canvas = canvasRef.current;
-      const video = videoRef.current;
-      const context = canvas.getContext('2d');
-      
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      
-      context.drawImage(video, 0, 0);
-      const imageData = canvas.toDataURL('image/jpeg', 0.8);
-      setCapturedImage(imageData);
-      
-      // Clear auto capture timer
-      if (autoCaptureTimerRef.current) {
-        clearTimeout(autoCaptureTimerRef.current);
-        autoCaptureTimerRef.current = null;
-      }
-      setAutoCapturing(false);
-      
-      return imageData;
-    }
-    return null;
+    if (!videoRef.current || !canvasRef.current) return null;
+
+    const canvas = canvasRef.current;
+    const video = videoRef.current;
+    
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    const ctx = canvas.getContext('2d');
+    // Mirror the image for selfie effect
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, -canvas.width, 0);
+    
+    const dataURL = canvas.toDataURL('image/jpeg', 0.8);
+    setCapturedPhoto(dataURL);
+    return dataURL;
   }, []);
 
-  const stopCamera = useCallback(() => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-    if (autoCaptureTimerRef.current) {
-      clearTimeout(autoCaptureTimerRef.current);
-      autoCaptureTimerRef.current = null;
-    }
-    setIsCapturing(false);
-    setAutoCapturing(false);
-  }, []);
-
-  const resetCapture = useCallback(() => {
-    setCapturedImage(null);
-    setError(null);
-    if (autoCaptureTimerRef.current) {
-      clearTimeout(autoCaptureTimerRef.current);
-      autoCaptureTimerRef.current = null;
-    }
-    setAutoCapturing(false);
-  }, []);
-
-  const uploadPhoto = useCallback(async (photoData, metadata = {}) => {
+  const uploadPhoto = async (photoData, metadata = {}) => {
+    setUploading(true);
     try {
-      // Convert base64 to blob
+      // Convert data URL to blob
       const response = await fetch(photoData);
       const blob = await response.blob();
       
-      // Create FormData for upload
       const formData = new FormData();
-      formData.append('photo', blob, `attendance-${Date.now()}.jpg`);
+      formData.append('photo', blob, 'attendance-photo.jpg');
       formData.append('metadata', JSON.stringify(metadata));
       
-      // Simulate upload (replace with your actual upload endpoint)
       const uploadResponse = await fetch('/api/upload-attendance-photo', {
         method: 'POST',
-        body: formData
+        body: formData,
       });
       
       if (!uploadResponse.ok) {
@@ -116,20 +102,49 @@ export const useCamera = () => {
     } catch (error) {
       console.error('Upload error:', error);
       throw error;
+    } finally {
+      setUploading(false);
     }
-  }, []);
+  };
+
+  const switchCamera = async () => {
+    if (devices.length <= 1) return;
+    
+    const currentIndex = devices.findIndex(device => device.deviceId === selectedDevice);
+    const nextIndex = (currentIndex + 1) % devices.length;
+    const nextDevice = devices[nextIndex];
+    
+    if (nextDevice) {
+      setSelectedDevice(nextDevice.deviceId);
+      if (isStreaming) {
+        stopCamera();
+        setTimeout(() => {
+          setSelectedDevice(nextDevice.deviceId);
+          startCamera();
+        }, 100);
+      }
+    }
+  };
+
+  const retakePhoto = () => {
+    setCapturedPhoto(null);
+  };
 
   return {
-    isCapturing,
-    capturedImage,
-    error,
-    autoCapturing,
     videoRef,
     canvasRef,
+    isStreaming,
+    capturedPhoto,
+    error,
+    devices,
+    selectedDevice,
+    uploading,
     startCamera,
-    capturePhoto,
     stopCamera,
-    resetCapture,
-    uploadPhoto
+    capturePhoto,
+    uploadPhoto,
+    switchCamera,
+    retakePhoto,
+    setCapturedPhoto
   };
 };
