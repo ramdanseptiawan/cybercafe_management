@@ -21,9 +21,14 @@ const CameraCapture = ({ onPhotoCapture, onCancel }) => {
     retakePhoto
   } = useCamera();
 
-  const { location, address, accuracy } = useGeolocation();
+  const { getCurrentLocation } = useGeolocation();
   const [showPreview, setShowPreview] = useState(false);
   const [uploadStatus, setUploadStatus] = useState('');
+  const [captureTime, setCaptureTime] = useState('');
+  const [captureLocation, setCaptureLocation] = useState(null);
+  const [captureAddress, setCaptureAddress] = useState('');
+  const [captureAccuracy, setCaptureAccuracy] = useState(null);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
 
   useEffect(() => {
     if (capturedPhoto) {
@@ -31,10 +36,53 @@ const CameraCapture = ({ onPhotoCapture, onCancel }) => {
     }
   }, [capturedPhoto]);
 
-  const handleCapture = () => {
+  // Format timestamp dengan format: hari:bulan:tahun Jam:Menit:detik
+  const formatTimestamp = () => {
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    
+    return `${day}:${month}:${year} ${hours}:${minutes}:${seconds}`;
+  };
+
+  const handleCapture = async () => {
+    // Get current location first
+    setIsGettingLocation(true);
+    let currentLocationData = null;
+    
+    try {
+      currentLocationData = await getCurrentLocation();
+    } catch (error) {
+      console.log('Location error:', error);
+    }
+    setIsGettingLocation(false);
+
+    // Then capture photo
     const photoData = capturePhoto();
-    if (photoData && onPhotoCapture) {
-      onPhotoCapture(photoData);
+    if (photoData) {
+      // Store capture data with current location and formatted timestamp
+      setCaptureTime(formatTimestamp());
+      
+      if (currentLocationData) {
+        setCaptureLocation({
+          latitude: currentLocationData.latitude,
+          longitude: currentLocationData.longitude
+        });
+        setCaptureAddress(currentLocationData.address || 'Lokasi tidak tersedia');
+        setCaptureAccuracy(currentLocationData.accuracy);
+      } else {
+        setCaptureLocation(null);
+        setCaptureAddress('Lokasi tidak tersedia');
+        setCaptureAccuracy(null);
+      }
+      
+      if (onPhotoCapture) {
+        onPhotoCapture(photoData);
+      }
     }
   };
 
@@ -45,9 +93,9 @@ const CameraCapture = ({ onPhotoCapture, onCancel }) => {
       setUploadStatus('Mengunggah...');
       const metadata = {
         timestamp: new Date().toISOString(),
-        location: location,
-        address: address,
-        accuracy: accuracy
+        location: captureLocation,
+        address: captureAddress,
+        accuracy: captureAccuracy
       };
 
       await uploadPhoto(capturedPhoto, metadata);
@@ -67,11 +115,31 @@ const CameraCapture = ({ onPhotoCapture, onCancel }) => {
     retakePhoto();
     setShowPreview(false);
     setUploadStatus('');
+    setCaptureTime('');
+    setCaptureLocation(null);
+    setCaptureAddress('');
+    setCaptureAccuracy(null);
+    setIsGettingLocation(false);
     if (onCancel) onCancel();
   };
 
-  const formatTime = () => {
-    return new Date().toLocaleTimeString('id-ID');
+  const handleRetake = async () => {
+    // Reset all capture data
+    retakePhoto();
+    setShowPreview(false);
+    setUploadStatus('');
+    setCaptureTime('');
+    setCaptureLocation(null);
+    setCaptureAddress('');
+    setCaptureAccuracy(null);
+    setIsGettingLocation(false);
+    
+    // Immediately restart camera
+    try {
+      await startCamera();
+    } catch (error) {
+      console.error('Error restarting camera:', error);
+    }
   };
 
   if (showPreview && capturedPhoto) {
@@ -99,16 +167,16 @@ const CameraCapture = ({ onPhotoCapture, onCancel }) => {
             <div className="absolute bottom-2 left-2 right-2 bg-black bg-opacity-70 text-white p-2 rounded text-xs">
               <div className="flex items-center space-x-1 mb-1">
                 <MapPin className="w-3 h-3" />
-                <span className="truncate">{address || 'Mendapatkan lokasi...'}</span>
+                <span className="truncate">{captureAddress}</span>
               </div>
               <div className="flex items-center space-x-1 mb-1">
                 <Clock className="w-3 h-3" />
-                <span>{formatTime()}</span>
+                <span>{captureTime}</span>
               </div>
-              {location && (
+              {captureLocation && (
                 <div className="text-xs opacity-75">
-                  {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
-                  {accuracy && ` (±${Math.round(accuracy)}m)`}
+                  {captureLocation.latitude.toFixed(6)}, {captureLocation.longitude.toFixed(6)}
+                  {captureAccuracy && ` (±${Math.round(captureAccuracy)}m)`}
                 </div>
               )}
             </div>
@@ -129,7 +197,7 @@ const CameraCapture = ({ onPhotoCapture, onCancel }) => {
 
           <div className="flex space-x-3">
             <button
-              onClick={retakePhoto}
+              onClick={handleRetake}
               className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg flex items-center justify-center space-x-2"
               disabled={uploading}
             >
@@ -187,6 +255,12 @@ const CameraCapture = ({ onPhotoCapture, onCancel }) => {
                 <span className="text-white text-xs">LIVE</span>
               </div>
             )}
+            {isGettingLocation && (
+              <div className="flex items-center space-x-1 bg-blue-600 px-2 py-1 rounded-full">
+                <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                <span className="text-white text-xs">GPS</span>
+              </div>
+            )}
           </div>
           
           <div className="flex space-x-2">
@@ -222,7 +296,8 @@ const CameraCapture = ({ onPhotoCapture, onCancel }) => {
               <>
                 <button
                   onClick={handleCapture}
-                  className="w-16 h-16 bg-white hover:bg-gray-100 rounded-full flex items-center justify-center transition-all transform hover:scale-105 shadow-lg"
+                  disabled={isGettingLocation}
+                  className="w-16 h-16 bg-white hover:bg-gray-100 disabled:bg-gray-300 rounded-full flex items-center justify-center transition-all transform hover:scale-105 shadow-lg"
                 >
                   <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center">
                     <Camera className="w-6 h-6 text-white" />
