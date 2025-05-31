@@ -20,7 +20,7 @@ const DashboardStats = ({ computers, activeSessions, customers, orders, stock, t
   const lowStockItems = stock ? 
     stock.filter(item => item.quantity <= item.minLevel) : [];
 
-  // Calculate today's revenue
+  // Calculate todays revenue
   const today = new Date().toISOString().split('T')[0];
   const todayRevenue = transactions ? 
     transactions

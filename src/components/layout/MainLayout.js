@@ -1,29 +1,30 @@
-import React from 'react';
-import { Coffee, Users, LogOut, Monitor, Clock, Settings, Menu as MenuIcon, ChevronLeft, Plus, Edit, Trash2, Package, ShoppingCart, FileText, DollarSign, TrendingUp, AlertTriangle } from 'lucide-react';
-import Dashboard from '../dashboard/Dashboard';
-import DashboardStats from '../dashboard/DashboardStats';
-import StockManagement from '../stock/StockManagement';
-import MenuManagement from '../menu/MenuManagement';
-import TransactionsView from '../transactions/TransactionsView';
-import Reports from '../reports/Reports';
-import ComputerManagement from '../computers/ComputerManagement';
-import SessionManagement from '../sessions/SessionManagement';
-import CustomerManagement from '../customers/CustomerManagement';
-import KitchenManagement from '../kitchen/KitchenManagement';
-import AttendanceManagement from '../attendance/AttendanceManagement';
+import React, { useState, useEffect } from 'react';
 import StockModal from '../modals/StockModal';
 import MenuModal from '../modals/MenuModal';
 import TransactionModal from '../modals/TransactionModal';
-import StaffManagement from '../settings/StaffManagement';
-import AuditLogs from '../settings/AuditLogs';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import MobileHeader from './MobileHeader';
+import MobileNavigation from './MobileNavigation';
+import ContentArea from './ContentArea';
+import TabContent from './TabContent';
+
+// Style untuk kelas khusus
+const contentContainerStyle = {
+  marginLeft: 0,
+  paddingLeft: 0
+};
 
 const MainLayout = ({ user, logout, isAdmin, state, handlers, modals }) => {
+  const [isMobile, setIsMobile] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  // Destructure state dan handlers untuk diteruskan ke komponen anak
   const { 
     activeTab, 
-    sidebarCollapsed,
+    sidebarCollapsed, 
     settingsTab,
+    // Destructure semua state yang diperlukan
     stock,
     menu,
     transactions,
@@ -34,263 +35,244 @@ const MainLayout = ({ user, logout, isAdmin, state, handlers, modals }) => {
     orders,
     staff,
     roles,
-    auditLogs,
-    stockForm,
-    menuForm,
-    transactionForm,
-    editingItem
+    auditLogs
   } = state;
-
-  const {
-    setActiveTab,
-    setSidebarCollapsed,
+  
+  const { 
+    setActiveTab, 
+    setSidebarCollapsed, 
     setSettingsTab,
-    handleStockSubmit,
+    // Destructure semua handler yang diperlukan
+    addStock,
     editStock,
     deleteStock,
-    handleMenuSubmit,
+    addMenu,
     editMenu,
     deleteMenu,
-    handleTransactionSubmit,
+    addTransaction,
+    editTransaction,
+    deleteTransaction,
+    addComputer,
+    editComputer,
+    deleteComputer,
+    startSession,
+    endSession,
+    addCustomer,
+    editCustomer,
+    deleteCustomer,
+    updateOrderStatus,
     addStaff,
-    updateStaff,
+    editStaff,
     deleteStaff,
-    addRole,
-    updateRole,
-    deleteRole,
-    setComputers,
-    setActiveSessions,
-    setCustomers,
-    setOrders,
-    setStockForm,
-    setMenuForm,
-    setTransactionForm,
-    setEditingItem,
-    logAction
+    addOrder
   } = handlers;
+  
+  // State untuk modal
+  const [showStockModal, setShowStockModal] = useState(false);
+  const [showMenuModal, setShowMenuModal] = useState(false);
+  const [showTransactionModal, setShowTransactionModal] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const [stockForm, setStockForm] = useState({});
+  const [menuForm, setMenuForm] = useState({});
+  const [transactionForm, setTransactionForm] = useState({});
 
-  const {
-    showStockModal,
-    setShowStockModal,
-    showMenuModal,
-    setShowMenuModal,
-    showTransactionModal,
-    setShowTransactionModal
-  } = modals;
+  // Fungsi untuk update form
+  const updateStockForm = (field, value) => {
+    setStockForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const updateMenuForm = (field, value) => {
+    setMenuForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const updateTransactionForm = (field, value) => {
+    setTransactionForm(prev => ({ ...prev, [field]: value }));
+  };
+  
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Close mobile menu when tab changes
+  useEffect(() => {
+    if (isMobile) {
+      setMobileMenuOpen(false);
+    }
+  }, [activeTab, isMobile]);
+
+  // Siapkan props untuk TabContent
+  const tabContentProps = {
+    activeTab,
+    settingsTab,
+    setSettingsTab,
+    state: {
+      stock,
+      menu,
+      transactions,
+      computers,
+      activeSessions,
+      timePackages,
+      customers,
+      orders,
+      staff,
+      roles,
+      auditLogs
+    },
+    handlers: {
+      addStock,
+      editStock,
+      deleteStock,
+      addMenu,
+      editMenu,
+      deleteMenu,
+      addTransaction,
+      editTransaction,
+      deleteTransaction,
+      addComputer,
+      editComputer,
+      deleteComputer,
+      startSession,
+      endSession,
+      addCustomer,
+      editCustomer,
+      deleteCustomer,
+      updateOrderStatus,
+      addStaff,
+      editStaff,
+      deleteStaff,
+      setActiveTab
+    },
+    isAdmin,
+    modals: {
+      setShowStockModal,
+      setShowMenuModal,
+      setShowTransactionModal
+    }
+  };
 
   return (
     <div className="flex h-screen bg-gray-100 text-black overflow-hidden">
-      {/* Sidebar */}
-      <Sidebar
-        user={user}
-        logout={logout}
-        isAdmin={isAdmin}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        sidebarCollapsed={sidebarCollapsed}
-        setSidebarCollapsed={setSidebarCollapsed}
-      />
+      {/* Mobile Overlay */}
+      {isMobile && mobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Sidebar - HANYA untuk Desktop */}
+      {!isMobile && (
+        <div className={`${sidebarCollapsed ? 'w-16' : 'w-64'} transition-all duration-300`}>
+          <Sidebar
+            user={user}
+            logout={logout}
+            isAdmin={isAdmin}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            sidebarCollapsed={sidebarCollapsed}
+            setSidebarCollapsed={setSidebarCollapsed}
+            isMobile={false}
+          />
+        </div>
+      )}
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <Header
-          activeTab={activeTab}
-          sidebarCollapsed={sidebarCollapsed}
-          setSidebarCollapsed={setSidebarCollapsed}
-        />
+      <div 
+        className={`flex-1 flex flex-col ${isMobile ? 'w-full' : sidebarCollapsed ? 'ml-16 pl-0' : 'ml-64 pl-0'} transition-all duration-300`}
+        style={contentContainerStyle}
+      >
+        {/* Desktop Header */}
+        {!isMobile && (
+          <Header 
+            activeTab={activeTab}
+            sidebarCollapsed={sidebarCollapsed}
+            setSidebarCollapsed={setSidebarCollapsed}
+            user={user}
+          />
+        )}
 
-        {/* Page Content */}
-        <main className="flex-1 overflow-auto p-6">
-          {activeTab === 'dashboard' && (
-            <>
-              <DashboardStats 
-                computers={computers}
-                activeSessions={activeSessions}
-                customers={customers}
-                orders={orders}
-                stock={stock}
-                transactions={transactions}
-              />
-              <div className="mt-6">
-                <Dashboard 
-                  stock={stock} 
-                  menu={menu} 
-                  transactions={transactions} 
-                  computers={computers}
-                  setShowStockModal={isAdmin ? setShowStockModal : null}
-                  setShowMenuModal={isAdmin ? setShowMenuModal : null}
-                  setShowTransactionModal={isAdmin ? setShowTransactionModal : null}
-                  isAdmin={isAdmin}
-                />
-              </div>
-            </>
-          )}
-          
-          {activeTab === 'stock' && 
-            <StockManagement 
-              stock={stock} 
-              editStock={editStock} 
-              deleteStock={deleteStock} 
-              setShowStockModal={isAdmin ? setShowStockModal : null} 
-              isAdmin={isAdmin}
-            />
-          }
-          {activeTab === 'menu' && 
-            <MenuManagement 
-              menu={menu} 
-              editMenu={editMenu} 
-              deleteMenu={deleteMenu} 
-              setShowMenuModal={isAdmin ? setShowMenuModal : null} 
-              isAdmin={isAdmin}
-            />
-          }
-          {activeTab === 'transactions' && 
-            <TransactionsView 
-              transactions={transactions} 
-              setShowTransactionModal={isAdmin ? setShowTransactionModal : null} 
-              isAdmin={isAdmin}
-            />
-          }
-          {activeTab === 'reports' && 
-            <Reports 
-              stock={stock} 
-              transactions={transactions} 
-            />
-          }
-          {activeTab === 'computers' && 
-            <ComputerManagement 
-              computers={computers}
-              setComputers={setComputers}
-              isAdmin={isAdmin}
-            />
-          }
-          {activeTab === 'sessions' && 
-            <SessionManagement 
-              activeSessions={activeSessions}
-              setActiveSessions={setActiveSessions}
-              computers={computers}
-              timePackages={timePackages}
-              isAdmin={isAdmin}
-            />
-          }
-          {activeTab === 'customers' && 
-            <CustomerManagement 
-              customers={customers}
-              setCustomers={setCustomers}
-              isAdmin={isAdmin}
-            />
-          }
-          {activeTab === 'kitchen' && 
-            <KitchenManagement 
-              menu={menu}
-              stock={stock}
-              orders={orders}
-              setOrders={setOrders}
-              isAdmin={isAdmin}
-            />
-          }
-          {activeTab === 'settings' && (
-            <div className="space-y-6">
-              <div className="bg-white shadow-sm rounded-lg overflow-hidden">
-                <div className="border-b border-gray-200">
-                  <nav className="flex">
-                    <button
-                      onClick={() => setSettingsTab('general')}
-                      className={`px-4 py-3 text-sm font-medium ${
-                        settingsTab === 'general'
-                          ? 'border-b-2 border-blue-500 text-blue-600'
-                          : 'text-gray-500 hover:text-gray-700'
-                      }`}
-                    >
-                      General
-                    </button>
-                    <button
-                      onClick={() => setSettingsTab('staff')}
-                      className={`px-4 py-3 text-sm font-medium ${
-                        settingsTab === 'staff'
-                          ? 'border-b-2 border-blue-500 text-blue-600'
-                          : 'text-gray-500 hover:text-gray-700'
-                      }`}
-                    >
-                      Staff Management
-                    </button>
-                    <button
-                      onClick={() => setSettingsTab('logs')}
-                      className={`px-4 py-3 text-sm font-medium ${
-                        settingsTab === 'logs'
-                          ? 'border-b-2 border-blue-500 text-blue-600'
-                          : 'text-gray-500 hover:text-gray-700'
-                      }`}
-                    >
-                      Audit Logs
-                    </button>
-                  </nav>
-                </div>
-                <div className="p-6">
-                  {settingsTab === 'general' && (
-                    <div>
-                      <h2 className="text-lg font-medium text-gray-900 mb-4">General Settings</h2>
-                      <p className="text-gray-500">General system settings will be displayed here.</p>
-                    </div>
-                  )}
-                  {settingsTab === 'staff' && (
-                    <StaffManagement 
-                      staff={staff}
-                      roles={roles}
-                      addStaff={addStaff}
-                      updateStaff={updateStaff}
-                      deleteStaff={deleteStaff}
-                      addRole={addRole}
-                      updateRole={updateRole}
-                      deleteRole={deleteRole}
-                      logAction={logAction}
-                    />
-                  )}
-                  {settingsTab === 'logs' && (
-                    <AuditLogs 
-                      logs={auditLogs}
-                    />
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-          {activeTab === 'attendance' && <AttendanceManagement />}
-        </main>
+        {/* Mobile Header - Gunakan komponen MobileHeader */}
+        {isMobile && (
+          <MobileHeader 
+            user={user} 
+            logout={logout} 
+            activeTab={activeTab} 
+            isAdmin={isAdmin} 
+          />
+        )}
+
+        {/* Content Area - Gunakan komponen ContentArea */}
+        <ContentArea isMobile={isMobile}>
+          {/* Tab Content - Gunakan komponen TabContent */}
+          <TabContent {...tabContentProps} />
+        </ContentArea>
       </div>
 
-      {/* Modals - Only shown for admin users */}
-      {isAdmin && showStockModal && (
-        <StockModal 
-          editingItem={editingItem}
-          stockForm={stockForm}
-          setStockForm={setStockForm}
-          handleStockSubmit={handleStockSubmit}
-          setShowStockModal={setShowStockModal}
-          setEditingItem={setEditingItem}
+      {/* Mobile Navigation - Gunakan komponen MobileNavigation */}
+      {isMobile && (
+        <MobileNavigation
+          mobileMenuOpen={mobileMenuOpen}
+          setMobileMenuOpen={setMobileMenuOpen}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          user={user}
+          logout={logout}
+          isAdmin={isAdmin}
         />
       )}
 
-      {isAdmin && showMenuModal && (
-        <MenuModal 
-          editingItem={editingItem}
-          menuForm={menuForm}
-          setMenuForm={setMenuForm}
-          handleMenuSubmit={handleMenuSubmit}
-          setShowMenuModal={setShowMenuModal}
-          setEditingItem={setEditingItem}
+      {/* Desktop Sidebar Overlay - hanya untuk desktop */}
+      {!isMobile && sidebarCollapsed && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
+          onClick={() => setSidebarCollapsed(true)}
         />
       )}
 
-      {isAdmin && showTransactionModal && (
-        <TransactionModal 
-          transactionForm={transactionForm}
-          setTransactionForm={setTransactionForm}
-          handleTransactionSubmit={handleTransactionSubmit}
-          setShowTransactionModal={setShowTransactionModal}
-          stock={stock}
-          menu={menu}
+      {/* Modals */}
+      {showStockModal && (
+        <StockModal
+          stock={stockForm}
+          updateStock={updateStockForm}
+          onSave={editingItem ? editStock : addStock}
+          onClose={() => {
+            setShowStockModal(false);
+            setEditingItem(null);
+          }}
+          isEditing={!!editingItem}
+        />
+      )}
+
+      {showMenuModal && (
+        <MenuModal
+          menu={menuForm}
+          updateMenu={updateMenuForm}
+          onSave={editingItem ? editMenu : addMenu}
+          onClose={() => {
+            setShowMenuModal(false);
+            setEditingItem(null);
+          }}
+          isEditing={!!editingItem}
+        />
+      )}
+
+      {showTransactionModal && (
+        <TransactionModal
+          transaction={transactionForm}
+          updateTransaction={updateTransactionForm}
+          onSave={editingItem ? editTransaction : addTransaction}
+          onClose={() => {
+            setShowTransactionModal(false);
+            setEditingItem(null);
+          }}
+          isEditing={!!editingItem}
         />
       )}
     </div>

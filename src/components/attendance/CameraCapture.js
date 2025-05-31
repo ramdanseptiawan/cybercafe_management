@@ -4,7 +4,7 @@ import { Camera, Upload, RotateCcw, X, MapPin, Clock, CheckCircle } from 'lucide
 import { useCamera } from '../../hooks/useCamera';
 import { useGeolocation } from '../../hooks/useGeolocation';
 
-const CameraCapture = ({ onPhotoCapture, onClose }) => {
+const CameraCapture = ({ onPhotoCapture, onClose, onCancel }) => {
   const {
     videoRef,
     canvasRef,
@@ -149,7 +149,11 @@ const CameraCapture = ({ onPhotoCapture, onClose }) => {
     setCaptureAddress('');
     setCaptureAccuracy(null);
     setIsGettingLocation(false);
-    if (onCancel) onCancel();
+    if (onCancel) {
+      onCancel();
+    } else if (onClose) {
+      onClose();
+    }
   };
 
   const handleRetake = async () => {
@@ -202,7 +206,6 @@ const CameraCapture = ({ onPhotoCapture, onClose }) => {
                 <Clock className="w-3 h-3" />
                 <span>{captureTime}</span>
               </div>
-              // Di bagian overlay foto:
               {captureLocation && (
                 <div className="text-xs opacity-75">
                   {captureLocation.latitude.toFixed(6)}, {captureLocation.longitude.toFixed(6)}
@@ -274,6 +277,9 @@ const CameraCapture = ({ onPhotoCapture, onClose }) => {
           playsInline
           muted
           className="w-full h-full object-cover transform scale-x-[-1]"
+          style={{
+            minHeight: window.innerWidth <= 768 ? '400px' : '300px' // Minimum height lebih tinggi untuk mobile
+          }}
         />
         
         {/* Overlay Controls */}
