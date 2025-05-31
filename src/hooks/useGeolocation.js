@@ -5,6 +5,7 @@ export const useGeolocation = () => {
   const [location, setLocation] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [locationValidated, setLocationValidated] = useState(false);
 
   const getCurrentLocation = useCallback(() => {
     return new Promise((resolve, reject) => {
@@ -17,6 +18,7 @@ export const useGeolocation = () => {
 
       setLoading(true);
       setError(null);
+      setLocationValidated(false);
 
       navigator.geolocation.getCurrentPosition(
         async (position) => {
@@ -48,7 +50,7 @@ export const useGeolocation = () => {
               errorMessage = 'Location access denied by user';
               break;
             case error.POSITION_UNAVAILABLE:
-              errorMessage = 'Location information unavailable';
+              errorMessage = 'Location information is unavailable';
               break;
             case error.TIMEOUT:
               errorMessage = 'Location request timed out';
@@ -60,8 +62,8 @@ export const useGeolocation = () => {
         },
         {
           enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 60000
+          timeout: 15000,
+          maximumAge: 30000
         }
       );
     });
@@ -69,7 +71,6 @@ export const useGeolocation = () => {
 
   const reverseGeocode = async (lat, lng) => {
     try {
-      // Using a free geocoding service (you can replace with your preferred service)
       const response = await fetch(
         `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`
       );
@@ -81,8 +82,11 @@ export const useGeolocation = () => {
     }
   };
 
-  const validateLocation = (targetLat, targetLng, maxDistance = 100) => {
-    if (!location) return false;
+  const validateLocation = useCallback((targetLat, targetLng, maxDistance = 100) => {
+    if (!location) {
+      setLocationValidated(false);
+      return false;
+    }
     
     const distance = calculateDistance(
       location.latitude,
@@ -91,8 +95,54 @@ export const useGeolocation = () => {
       targetLng
     );
     
-    return distance <= maxDistance;
-  };
+    const isValid = distance <= maxDistance;
+    setLocationValidated(isValid);
+    return isValid;
+  }, [location]);
+
+  const validateMultipleLocations = useCallback((allowedLocations) => {
+    if (!location || !allowedLocations || allowedLocations.length === 0) {
+      // Jika tidak ada lokasi yang dibatasi, anggap valid
+      setLocationValidated(true);
+      return { isValid: true, distance: 0, nearestLocation: null };
+    }
+
+    let minDistance = Infinity;
+    let nearestLocation = null;
+    let isValid = false;
+
+    allowedLocations.forEach(allowed => {
+      const distance = calculateDistance(
+        location.latitude,
+        location.longitude,
+        allowed.latitude,
+        allowed.longitude
+      );
+      
+      if (distance < minDistance) {
+        minDistance = distance;
+        nearestLocation = allowed;
+      }
+      
+      // Perbaikan: gunakan toleransi yang lebih besar untuk GPS accuracy
+      const allowedRadius = allowed.radius || 100;
+      const gpsAccuracyBuffer = Math.max(location.accuracy || 10, 10); // minimum 10m buffer
+      const effectiveRadius = allowedRadius + gpsAccuracyBuffer;
+      
+      if (distance <= effectiveRadius) {
+        isValid = true;
+      }
+    });
+
+    setLocationValidated(isValid);
+    return {
+      isValid,
+      distance: minDistance,
+      nearestLocation,
+      currentLocation: location,
+      effectiveRadius: nearestLocation ? (nearestLocation.radius || 100) + Math.max(location.accuracy || 10, 10) : null
+    };
+  }, [location]);
 
   const calculateDistance = (lat1, lng1, lat2, lng2) => {
     const R = 6371e3; // Earth's radius in meters
@@ -113,8 +163,10 @@ export const useGeolocation = () => {
     location,
     loading,
     error,
+    locationValidated,
     getCurrentLocation,
     validateLocation,
+    validateMultipleLocations,
     calculateDistance
   };
 };

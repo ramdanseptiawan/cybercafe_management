@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from 'react';
-import { MapPin, Camera, Clock, AlertCircle, CheckCircle } from 'lucide-react';
+import { MapPin, Camera, Clock, AlertCircle, CheckCircle, Navigation, Wifi } from 'lucide-react';
 import { useGeolocation } from '../../hooks/useGeolocation';
 import CameraCapture from './CameraCapture';
 
@@ -15,35 +15,49 @@ const AttendanceCheckIn = ({ employee, onSubmit, allowedLocations = [] }) => {
   const [showCamera, setShowCamera] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [locationValidation, setLocationValidation] = useState(null);
 
-  const { location, loading: locationLoading, error: locationError, getCurrentLocation, validateLocation } = useGeolocation();
+  const { 
+    location, 
+    loading: locationLoading, 
+    error: locationError, 
+    getCurrentLocation, 
+    validateMultipleLocations 
+  } = useGeolocation();
 
   const handleLocationCapture = async () => {
     setLoading(true);
     setError(null);
+    setLocationValidation(null);
     
     try {
       const locationData = await getCurrentLocation();
       
-      // Validate if location is within allowed areas
-      const isValidLocation = allowedLocations.length === 0 || allowedLocations.some(allowed => 
-        validateLocation(allowed.latitude, allowed.longitude, allowed.radius || 100)
-      );
+      // Validate location with improved logic
+      const validation = validateMultipleLocations(allowedLocations);
+      setLocationValidation(validation);
       
-      if (!isValidLocation) {
-        setError('You are not in an authorized location for check-in');
-        setLoading(false);
-        return;
+      // Perbaikan: Jika jarak sangat dekat (< 5m) atau tidak ada pembatasan lokasi, langsung valid
+      if (validation.isValid || validation.distance < 5 || allowedLocations.length === 0) {
+        setAttendanceData(prev => ({
+          ...prev,
+          location: locationData,
+          timestamp: new Date().toISOString()
+        }));
+        
+        setStep('camera');
+        setShowCamera(true);
+      } else {
+        const nearestDistance = Math.round(validation.distance);
+        const nearestLocationName = validation.nearestLocation?.name || 'authorized location';
+        const effectiveRadius = validation.effectiveRadius || 100;
+        
+        setError(
+          `You are ${nearestDistance}m away from ${nearestLocationName}. ` +
+          `Please move within ${Math.round(effectiveRadius)}m radius for check-in. ` +
+          `(GPS accuracy: ±${Math.round(locationData.accuracy || 0)}m)`
+        );
       }
-      
-      setAttendanceData(prev => ({
-        ...prev,
-        location: locationData,
-        timestamp: new Date().toISOString()
-      }));
-      
-      setStep('camera');
-      setShowCamera(true);
     } catch (err) {
       setError(err);
     } finally {
@@ -51,10 +65,12 @@ const AttendanceCheckIn = ({ employee, onSubmit, allowedLocations = [] }) => {
     }
   };
 
-  const handlePhotoCapture = (photoData) => {
+  const handlePhotoCapture = (captureData) => {
     setAttendanceData(prev => ({
       ...prev,
-      photo: photoData
+      photo: captureData.photo,
+      location: captureData.location || prev.location,
+      timestamp: captureData.timestamp || prev.timestamp
     }));
     setShowCamera(false);
     setStep('confirm');
@@ -66,7 +82,8 @@ const AttendanceCheckIn = ({ employee, onSubmit, allowedLocations = [] }) => {
       await onSubmit({
         ...attendanceData,
         employeeId: employee.id,
-        employeeName: employee.name
+        employeeName: employee.name,
+        locationValidation: locationValidation
       });
     } catch (err) {
       setError('Failed to submit attendance');
@@ -85,6 +102,7 @@ const AttendanceCheckIn = ({ employee, onSubmit, allowedLocations = [] }) => {
     });
     setShowCamera(false);
     setError(null);
+    setLocationValidation(null);
   };
 
   if (showCamera) {
@@ -92,12 +110,14 @@ const AttendanceCheckIn = ({ employee, onSubmit, allowedLocations = [] }) => {
       <CameraCapture
         onCapture={handlePhotoCapture}
         onCancel={() => setShowCamera(false)}
+        autoCapture={false}
       />
     );
   }
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-6 max-w-md mx-auto">
+      {/* Header */}
       <div className="text-center mb-6">
         <h2 className="text-2xl font-bold text-gray-800 mb-2">Check In</h2>
         <p className="text-gray-600">Welcome, {employee.name}</p>
@@ -106,9 +126,47 @@ const AttendanceCheckIn = ({ employee, onSubmit, allowedLocations = [] }) => {
 
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="text-red-600" size={20} />
-            <p className="text-red-700">{error}</p>
+          <div className="flex items-start gap-2">
+            <AlertCircle className="text-red-600 flex-shrink-0 mt-0.5" size={20} />
+            <p className="text-red-700 text-sm">{error}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Location Validation Info */}
+      {locationValidation && (
+        <div className={`border rounded-lg p-4 mb-4 ${
+          locationValidation.isValid 
+            ? 'bg-green-50 border-green-200' 
+            : 'bg-yellow-50 border-yellow-200'
+        }`}>
+          <div className="flex items-start gap-2">
+            <Navigation className={`flex-shrink-0 mt-0.5 ${
+              locationValidation.isValid ? 'text-green-600' : 'text-yellow-600'
+            }`} size={20} />
+            <div className="flex-1">
+              <p className={`font-medium text-sm ${
+                locationValidation.isValid ? 'text-green-800' : 'text-yellow-800'
+              }`}>
+                {locationValidation.isValid 
+                  ? '✓ Location Verified' 
+                  : `${Math.round(locationValidation.distance)}m from nearest location`
+                }
+              </p>
+              {locationValidation.nearestLocation && (
+                <p className="text-xs text-gray-600 mt-1">
+                  Nearest: {locationValidation.nearestLocation.name}
+                </p>
+              )}
+              {locationValidation.currentLocation && (
+                <div className="flex items-center gap-1 mt-1">
+                  <Wifi className="w-3 h-3 text-gray-400" />
+                  <span className="text-xs text-gray-500">
+                    GPS accuracy: ±{Math.round(locationValidation.currentLocation.accuracy || 0)}m
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -124,19 +182,42 @@ const AttendanceCheckIn = ({ employee, onSubmit, allowedLocations = [] }) => {
             <p className="text-gray-600 text-sm mb-4">
               We need to verify your location for attendance
             </p>
+            
+            {/* Show allowed locations */}
+            {allowedLocations.length > 0 && (
+              <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                <p className="text-xs font-medium text-gray-700 mb-2">Authorized Locations:</p>
+                <div className="space-y-1">
+                  {allowedLocations.map((loc, index) => (
+                    <div key={index} className="text-xs text-gray-600 flex items-center gap-1">
+                      <MapPin className="w-3 h-3" />
+                      {loc.name} (±{loc.radius || 100}m radius)
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
           
           <button
             onClick={handleLocationCapture}
             disabled={loading || locationLoading}
-            className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            {loading || locationLoading ? 'Getting Location...' : 'Capture Location'}
+            {loading || locationLoading ? (
+              <>
+                <div className="animate-spin w-4 h-4 border border-white border-t-transparent rounded-full"></div>
+                Getting Location...
+              </>
+            ) : (
+              <>
+                <MapPin className="w-4 h-4" />
+                Capture Location
+              </>
+            )}
           </button>
         </div>
       )}
-
-      {/* Step 2: Camera (handled by CameraCapture component) */}
 
       {/* Step 3: Confirmation */}
       {step === 'confirm' && (
@@ -159,6 +240,16 @@ const AttendanceCheckIn = ({ employee, onSubmit, allowedLocations = [] }) => {
               Lat: {attendanceData.location?.latitude?.toFixed(6)}, 
               Lng: {attendanceData.location?.longitude?.toFixed(6)}
             </p>
+            {locationValidation && (
+              <p className={`text-xs mt-1 ${
+                locationValidation.isValid ? 'text-green-600' : 'text-yellow-600'
+              }`}>
+                {locationValidation.isValid 
+                  ? '✓ Location verified' 
+                  : `⚠ ${Math.round(locationValidation.distance)}m from authorized area`
+                }
+              </p>
+            )}
           </div>
 
           {/* Photo Preview */}
@@ -189,9 +280,19 @@ const AttendanceCheckIn = ({ employee, onSubmit, allowedLocations = [] }) => {
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className="flex-1 bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              {loading ? 'Submitting...' : 'Confirm Check In'}
+              {loading ? (
+                <>
+                  <div className="animate-spin w-4 h-4 border border-white border-t-transparent rounded-full"></div>
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-4 h-4" />
+                  Confirm Check In
+                </>
+              )}
             </button>
             <button
               onClick={handleReset}
