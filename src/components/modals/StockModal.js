@@ -26,6 +26,42 @@ const StockModal = ({
     setStockForm({ ...stockForm, price: raw });
   };
 
+  // Perbaikan form handling
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    // Validasi form
+    if (!stockForm.name || !stockForm.quantity || !stockForm.unit || !stockForm.minLevel || !stockForm.price || !stockForm.category) {
+      alert('Semua field harus diisi!');
+      return;
+    }
+    
+    // Validasi angka
+    if (isNaN(stockForm.quantity) || isNaN(stockForm.minLevel) || isNaN(stockForm.price)) {
+      alert('Quantity, Min Level, dan Price harus berupa angka!');
+      return;
+    }
+    
+    handleStockSubmit(e);
+  };
+  
+  // Perbaikan input handling
+  const handleQuantityChange = (e) => {
+    const value = e.target.value;
+    setStockForm({
+      ...stockForm, 
+      quantity: value === '' ? '' : parseFloat(value) || ''
+    });
+  };
+  
+  const handleMinLevelChange = (e) => {
+    const value = e.target.value;
+    setStockForm({
+      ...stockForm, 
+      minLevel: value === '' ? '' : parseFloat(value) || ''
+    });
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-full max-w-md">

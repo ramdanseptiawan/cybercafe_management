@@ -35,7 +35,12 @@ const MainLayout = ({ user, logout, isAdmin, state, handlers, modals }) => {
     orders,
     staff,
     roles,
-    auditLogs
+    auditLogs,
+    // Use the forms from state instead of creating local ones
+    stockForm,
+    menuForm,
+    transactionForm,
+    editingItem
   } = state;
   
   const { 
@@ -64,30 +69,26 @@ const MainLayout = ({ user, logout, isAdmin, state, handlers, modals }) => {
     addStaff,
     editStaff,
     deleteStaff,
-    addOrder
+    // Use the form setters from handlers
+    setStockForm,
+    setMenuForm,
+    handleStockSubmit,
+    handleMenuSubmit,
+    setEditingItem
   } = handlers;
   
-  // State untuk modal
-  const [showStockModal, setShowStockModal] = useState(false);
-  const [showMenuModal, setShowMenuModal] = useState(false);
-  const [showTransactionModal, setShowTransactionModal] = useState(false);
-  const [editingItem, setEditingItem] = useState(null);
-  const [stockForm, setStockForm] = useState({});
-  const [menuForm, setMenuForm] = useState({});
-  const [transactionForm, setTransactionForm] = useState({});
+  // Use the modal states from the modals object
+  const {
+    showStockModal,
+    setShowStockModal,
+    showMenuModal,
+    setShowMenuModal,
+    showTransactionModal,
+    setShowTransactionModal
+  } = modals;
 
-  // Fungsi untuk update form
-  const updateStockForm = (field, value) => {
-    setStockForm(prev => ({ ...prev, [field]: value }));
-  };
-
-  const updateMenuForm = (field, value) => {
-    setMenuForm(prev => ({ ...prev, [field]: value }));
-  };
-
-  const updateTransactionForm = (field, value) => {
-    setTransactionForm(prev => ({ ...prev, [field]: value }));
-  };
+  // Remove all the commented local state and functions
+  // Keep only the mobile-related state
   
   // Detect mobile screen size
   useEffect(() => {
@@ -239,27 +240,23 @@ const MainLayout = ({ user, logout, isAdmin, state, handlers, modals }) => {
       {/* Modals */}
       {showStockModal && (
         <StockModal
-          stock={stockForm}
-          updateStock={updateStockForm}
-          onSave={editingItem ? editStock : addStock}
-          onClose={() => {
-            setShowStockModal(false);
-            setEditingItem(null);
-          }}
-          isEditing={!!editingItem}
+          editingItem={editingItem}
+          stockForm={stockForm}
+          setStockForm={setStockForm}
+          handleStockSubmit={handleStockSubmit}
+          setShowStockModal={setShowStockModal}
+          setEditingItem={setEditingItem}
         />
       )}
 
       {showMenuModal && (
         <MenuModal
-          menu={menuForm}
-          updateMenu={updateMenuForm}
-          onSave={editingItem ? editMenu : addMenu}
-          onClose={() => {
-            setShowMenuModal(false);
-            setEditingItem(null);
-          }}
-          isEditing={!!editingItem}
+          editingItem={editingItem}
+          menuForm={menuForm}
+          setMenuForm={setMenuForm}
+          handleMenuSubmit={handleMenuSubmit}
+          setShowMenuModal={setShowMenuModal}
+          setEditingItem={setEditingItem}
         />
       )}
 

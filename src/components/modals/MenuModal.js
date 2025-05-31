@@ -22,11 +22,32 @@ const MenuModal = ({
 }) => {
   const [ingredient, setIngredient] = useState('');
 
+  // Perbaikan form validation
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    // Validasi form
+    if (!menuForm.name || !menuForm.price || !menuForm.category) {
+      alert('Name, Price, dan Category harus diisi!');
+      return;
+    }
+    
+    // Validasi price
+    if (isNaN(menuForm.price) || parseFloat(menuForm.price) <= 0) {
+      alert('Price harus berupa angka yang valid!');
+      return;
+    }
+    
+    handleMenuSubmit(e);
+  };
+  
+  // Perbaikan ingredients handling
   const addIngredient = () => {
     if (ingredient.trim() !== '') {
+      const currentIngredients = menuForm.ingredients || [];
       setMenuForm({
         ...menuForm,
-        ingredients: [...menuForm.ingredients, ingredient.trim()]
+        ingredients: [...currentIngredients, ingredient.trim()]
       });
       setIngredient('');
     }

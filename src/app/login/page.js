@@ -23,9 +23,29 @@ const Login = () => {
   }, [user, router]);
 
   // Mock user data - in a real app, this would come from a database
+  // Update the users array around line 26
   const users = [
-    { username: 'admin', password: 'admin123', role: 'admin' },
-    { username: 'viewer', password: 'viewer123', role: 'viewer' }
+    { username: 'admin', password: 'admin123', role: 'admin', name: 'Administrator', id: 'ADM001' },
+    { 
+      username: 'viewer', 
+      password: 'viewer123', 
+      role: 'viewer', 
+      name: 'Viewer User', 
+      id: 'VWR001',
+      department: 'Management'
+    },
+    { 
+      username: 'john', 
+      password: 'password123', 
+      role: 'employee',
+      id: 'EMP001',
+      name: 'John Doe',
+      department: 'Engineering',
+      email: 'john.doe@company.com',
+      phone: '+62812345678',
+      joinDate: '2024-01-15',
+      avatar: '/api/placeholder/150/150'
+    }
   ];
 
   const handleChange = (e) => {
@@ -45,8 +65,15 @@ const Login = () => {
     if (foundUser) {
       // Use the login function from AuthContext
       login({
+        id: foundUser.id || foundUser.username,
         username: foundUser.username,
-        role: foundUser.role
+        name: foundUser.name || foundUser.username,
+        role: foundUser.role,
+        department: foundUser.department,
+        email: foundUser.email,
+        phone: foundUser.phone,
+        joinDate: foundUser.joinDate,
+        avatar: foundUser.avatar
       });
     } else {
       setError('Invalid username or password');

@@ -1,15 +1,16 @@
 export const initialData = {
   stockData: [
-    { id: 1, name: 'Coffee Beans', quantity: 50, unit: 'kg', minLevel: 10, price: 25.99, category: 'Beverages' },
-    { id: 2, name: 'Milk', quantity: 20, unit: 'liters', minLevel: 5, price: 3.50, category: 'Dairy' },
-    { id: 3, name: 'Sugar', quantity: 15, unit: 'kg', minLevel: 5, price: 2.99, category: 'Sweeteners' },
-    { id: 4, name: 'Bread', quantity: 30, unit: 'loaves', minLevel: 10, price: 1.99, category: 'Bakery' }
+    { id: 1, name: 'Coffee Beans', quantity: 50, unit: 'kg', minLevel: 10, price: 25990, category: 'Beverages' },
+    { id: 2, name: 'Milk', quantity: 20, unit: 'liters', minLevel: 5, price: 3500, category: 'Dairy' },
+    { id: 3, name: 'Sugar', quantity: 15, unit: 'kg', minLevel: 5, price: 2990, category: 'Sweeteners' },
+    { id: 4, name: 'Bread', quantity: 30, unit: 'loaves', minLevel: 10, price: 1990, category: 'Bakery' }
   ],
 
   menuData: [
-    { id: 1, name: 'Espresso', price: 3.50, ingredients: ['Coffee Beans'], category: 'Hot Drinks', available: true },
-    { id: 2, name: 'Cappuccino', price: 4.50, ingredients: ['Coffee Beans', 'Milk'], category: 'Hot Drinks', available: true },
-    { id: 3, name: 'Toast', price: 2.99, ingredients: ['Bread'], category: 'Snacks', available: true }
+    { id: 1, name: 'Espresso', price: 15000, ingredients: ['Coffee Beans', 'Water'], category: 'Coffee', available: true },
+    { id: 2, name: 'Cappuccino', price: 20000, ingredients: ['Coffee Beans', 'Milk', 'Water'], category: 'Coffee', available: true },
+    { id: 3, name: 'Latte', price: 22000, ingredients: ['Coffee Beans', 'Milk', 'Water'], category: 'Coffee', available: true },
+    { id: 4, name: 'Sandwich', price: 25000, ingredients: ['Bread', 'Cheese', 'Ham'], category: 'Food', available: true }
   ],
 
   transactionsData: [
@@ -109,3 +110,19 @@ export const initialData = {
     }
   ]
 };
+
+// Add to existing data
+export const individualUsers = [
+  {
+    id: 'EMP001',
+    username: 'john',
+    password: 'password123',
+    name: 'John Doe',
+    department: 'Engineering',
+    role: 'employee',
+    email: 'john.doe@company.com',
+    phone: '+62812345678',
+    joinDate: '2024-01-15',
+    avatar: '/api/placeholder/150/150'
+  }
+];

@@ -186,3 +186,27 @@ const TransactionModal = ({
 };
 
 export default TransactionModal;
+
+// Perbaikan form validation
+const handleSubmit = (e) => {
+  e.preventDefault();
+  
+  // Validasi form
+  if (!transactionForm.item || !transactionForm.quantity || !transactionForm.price) {
+    alert('Item, Quantity, dan Price harus diisi!');
+    return;
+  }
+  
+  // Validasi angka
+  if (isNaN(transactionForm.quantity) || isNaN(transactionForm.price)) {
+    alert('Quantity dan Price harus berupa angka!');
+    return;
+  }
+  
+  if (parseFloat(transactionForm.quantity) <= 0 || parseFloat(transactionForm.price) <= 0) {
+    alert('Quantity dan Price harus lebih dari 0!');
+    return;
+  }
+  
+  handleTransactionSubmit(e);
+};
