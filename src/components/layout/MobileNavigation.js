@@ -1,6 +1,41 @@
 import { Coffee, Users, LogOut, Monitor, Settings, Menu as MenuIcon, Package, ShoppingCart, FileText, DollarSign, TrendingUp, Clipboard } from 'lucide-react';
 
 const MobileNavigation = ({ mobileMenuOpen, setMobileMenuOpen, activeTab, setActiveTab, user, logout, isAdmin }) => {
+  const userRole = user?.role;
+  
+  // Define menu items based on role
+  const getMenuItems = () => {
+    const baseItems = [
+      { id: 'dashboard', label: 'Dashboard', icon: TrendingUp, roles: ['admin', 'employee', 'viewer'] }
+    ];
+    
+    const adminItems = [
+      { id: 'computers', label: 'PC', icon: Monitor, roles: ['admin'] },
+      { id: 'customers', label: 'Customer', icon: Users, roles: ['admin'] },
+      { id: 'menu', label: 'Menu', icon: Coffee, roles: ['admin'] },
+      { id: 'stock', label: 'Stock', icon: Package, roles: ['admin'] },
+      { id: 'kitchen', label: 'Kitchen', icon: ShoppingCart, roles: ['admin'] },
+      { id: 'transactions', label: 'Finance', icon: DollarSign, roles: ['admin'] },
+      { id: 'reports', label: 'Reports', icon: FileText, roles: ['admin'] },
+      { id: 'attendance', label: 'Attendance', icon: Clipboard, roles: ['admin'] },
+      { id: 'settings', label: 'Settings', icon: Settings, roles: ['admin'] }
+    ];
+    
+    const employeeItems = [
+      { id: 'individual-attendance', label: 'My Attendance', icon: Clipboard, roles: ['employee'] },
+      { id: 'kitchen', label: 'Kitchen', icon: ShoppingCart, roles: ['employee'] }
+    ];
+    
+    const viewerItems = [
+      { id: 'computers', label: 'PC', icon: Monitor, roles: ['viewer'] },
+      { id: 'customers', label: 'Customer', icon: Users, roles: ['viewer'] },
+      { id: 'reports', label: 'Reports', icon: FileText, roles: ['viewer'] }
+    ];
+    
+    return [...baseItems, ...adminItems, ...employeeItems, ...viewerItems]
+      .filter(item => item.roles.includes(userRole));
+  };
+
   return (
     <>
       {/* Floating Action Button */}
@@ -32,7 +67,7 @@ const MobileNavigation = ({ mobileMenuOpen, setMobileMenuOpen, activeTab, setAct
                 </div>
                 <div>
                   <p className="font-medium text-gray-800">{user?.name || 'User'}</p>
-                  <p className="text-sm text-gray-500">{isAdmin ? 'Administrator' : 'Staff Member'}</p>
+                  <p className="text-sm text-gray-500 capitalize">{userRole || 'Staff Member'}</p>
                 </div>
               </div>
               <button
@@ -49,18 +84,7 @@ const MobileNavigation = ({ mobileMenuOpen, setMobileMenuOpen, activeTab, setAct
             
             {/* Navigation Grid */}
             <div className="grid grid-cols-3 gap-4">
-              {[
-                { id: 'dashboard', label: 'Dashboard', icon: TrendingUp },
-                { id: 'computers', label: 'PC', icon: Monitor },
-                { id: 'customers', label: 'Customer', icon: Users },
-                { id: 'menu', label: 'Menu', icon: Coffee },
-                { id: 'stock', label: 'Stock', icon: Package },
-                { id: 'kitchen', label: 'Kitchen', icon: ShoppingCart },
-                { id: 'transactions', label: 'Finance', icon: DollarSign },
-                { id: 'reports', label: 'Reports', icon: FileText },
-                { id: 'attendance', label: 'Attendance', icon: Clipboard },
-                ...(isAdmin ? [{ id: 'settings', label: 'Settings', icon: Settings }] : [])
-              ].map((item) => {
+              {getMenuItems().map((item) => {
                 const Icon = item.icon;
                 const isActive = activeTab === item.id;
                 

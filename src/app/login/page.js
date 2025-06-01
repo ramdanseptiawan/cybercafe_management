@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Coffee, User, Lock, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { individualUsers } from '../../data/initialData'; // Add this import
 
 const Login = () => {
   const router = useRouter();
@@ -25,27 +26,24 @@ const Login = () => {
   // Mock user data - in a real app, this would come from a database
   // Update the users array around line 26
   const users = [
-    { username: 'admin', password: 'admin123', role: 'admin', name: 'Administrator', id: 'ADM001' },
+    { 
+      username: 'admin', 
+      password: 'admin123', 
+      role: 'admin', 
+      name: 'Administrator', 
+      id: 'ADM001',
+      permissions: ['all']
+    },
     { 
       username: 'viewer', 
       password: 'viewer123', 
       role: 'viewer', 
       name: 'Viewer User', 
       id: 'VWR001',
-      department: 'Management'
+      department: 'Management',
+      permissions: ['dashboard', 'reports']
     },
-    { 
-      username: 'john', 
-      password: 'password123', 
-      role: 'employee',
-      id: 'EMP001',
-      name: 'John Doe',
-      department: 'Engineering',
-      email: 'john.doe@company.com',
-      phone: '+62812345678',
-      joinDate: '2024-01-15',
-      avatar: '/api/placeholder/150/150'
-    }
+    ...individualUsers // Import from initialData
   ];
 
   const handleChange = (e) => {

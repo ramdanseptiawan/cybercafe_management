@@ -13,10 +13,23 @@ import StaffManagement from '../settings/StaffManagement';
 import AuditLogs from '../settings/AuditLogs';
 import IndividualAttendance from '../attendance/IndividualAttendance';
 import { useAuth } from '../../context/AuthContext';
+import EmployeeDashboard from '../dashboard/EmployeeDashboard';
 
 const TabContent = ({ activeTab, settingsTab, setSettingsTab, state, handlers, isAdmin, modals }) => {
   const { user } = useAuth();
   const userRole = user?.role;
+  const hasAccess = (requiredPermission) => {
+    if (!user) return false;
+    
+    // Admin has access to everything
+    if (userRole === 'admin') return true;
+    
+    // Check specific permissions
+    if (user.permissions?.includes('all')) return true;
+    if (user.permissions?.includes(requiredPermission)) return true;
+    
+    return false;
+  };
   
   // Debug info
   console.log('TabContent Debug:', { user, userRole, activeTab, isAdmin });
@@ -68,13 +81,13 @@ const TabContent = ({ activeTab, settingsTab, setSettingsTab, state, handlers, i
     setShowTransactionModal
   } = modals;
 
-  // Access Control Function
-  const hasAccess = (requiredRole) => {
-    if (requiredRole === 'admin') return userRole === 'admin';
-    if (requiredRole === 'viewer') return userRole === 'viewer' || userRole === 'admin';
-    if (requiredRole === 'employee') return userRole === 'employee';
-    return false;
-  };
+  // Remove this duplicate hasAccess function (lines 84-90)
+  // const hasAccess = (requiredRole) => {
+  //   if (requiredRole === 'admin') return userRole === 'admin';
+  //   if (requiredRole === 'viewer') return userRole === 'viewer' || userRole === 'admin';
+  //   if (requiredRole === 'employee') return userRole === 'employee';
+  //   return false;
+  // };
 
   // Access Denied Component
   const AccessDenied = () => (
@@ -90,21 +103,32 @@ const TabContent = ({ activeTab, settingsTab, setSettingsTab, state, handlers, i
   return (
     <>
       {activeTab === 'dashboard' && (
-        <Dashboard 
-          stock={stock}
-          menu={menu}
-          transactions={transactions}
-          activeSessions={activeSessions}
-          computers={computers}
-          customers={customers}
-          orders={orders}
-          setActiveTab={handlers.setActiveTab}
-          setShowStockModal={userRole === 'admin' ? setShowStockModal : null}
-          setShowMenuModal={userRole === 'admin' ? setShowMenuModal : null}
-          setShowTransactionModal={userRole === 'admin' ? setShowTransactionModal : null}
-          isAdmin={userRole === 'admin'}
-          userRole={userRole}
-        />
+        userRole === 'admin' ? (
+          <Dashboard 
+            stock={stock}
+            menu={menu}
+            transactions={transactions}
+            activeSessions={activeSessions}
+            computers={computers}
+            customers={customers}
+            orders={orders}
+            setActiveTab={handlers.setActiveTab}
+            setShowStockModal={userRole === 'admin' ? setShowStockModal : null}
+            setShowMenuModal={userRole === 'admin' ? setShowMenuModal : null}
+            setShowTransactionModal={userRole === 'admin' ? setShowTransactionModal : null}
+            isAdmin={userRole === 'admin'}
+            userRole={userRole}
+          />
+        ) : (
+          <EmployeeDashboard 
+            user={user}
+            orders={orders}
+            activeSessions={activeSessions}
+            computers={computers}
+            setActiveTab={handlers.setActiveTab}
+            todayAttendance={null} // You can pass actual attendance data here
+          />
+        )
       )}
       
       {/* ADMIN ONLY SECTIONS */}

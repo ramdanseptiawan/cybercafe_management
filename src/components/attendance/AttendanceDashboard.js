@@ -123,9 +123,9 @@ const AttendanceDashboard = ({ employees = [], attendanceRecords = [] }) => {
                     emp.status === 'checked-in' ? 'text-green-600' : 
                     emp.status === 'checked-out' ? 'text-blue-600' : 'text-red-600'
                   }`}>
-                    {emp.status.replace('-', ' ').toUpperCase()}
+                    {(emp.status || 'not-available').replace('-', ' ').toUpperCase()}
                   </p>
-                  <p className="text-xs text-gray-500">{emp.lastAction}</p>
+                  <p className="text-xs text-gray-500">{emp.lastAction || 'No recent activity'}</p>
                 </div>
               </div>
             ))}

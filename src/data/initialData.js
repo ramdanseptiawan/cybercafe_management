@@ -111,18 +111,118 @@ export const initialData = {
   ]
 };
 
-// Add to existing data
+// Enhanced user system with permissions
 export const individualUsers = [
   {
     id: 'EMP001',
     username: 'john',
     password: 'password123',
     name: 'John Doe',
-    department: 'Engineering',
+    department: 'Kitchen',
     role: 'employee',
+    permissions: ['attendance', 'kitchen'], // Specific permissions
     email: 'john.doe@company.com',
     phone: '+62812345678',
     joinDate: '2024-01-15',
-    avatar: '/api/placeholder/150/150'
+    avatar: '/api/placeholder/150/150',
+    active: true
+  },
+  {
+    id: 'EMP002',
+    username: 'jane',
+    password: 'password123',
+    name: 'Jane Smith',
+    department: 'Operations',
+    role: 'employee',
+    permissions: ['stock', 'computers'], // Stock and computer operator
+    email: 'jane.smith@company.com',
+    phone: '+62812345679',
+    joinDate: '2024-02-01',
+    avatar: '/api/placeholder/150/150',
+    active: true
+  },
+  {
+    id: 'EMP003',
+    username: 'mike',
+    password: 'password123',
+    name: 'Mike Johnson',
+    department: 'Kitchen',
+    role: 'employee',
+    permissions: ['kitchen', 'menu'], // Kitchen staff
+    email: 'mike.johnson@company.com',
+    phone: '+62812345680',
+    joinDate: '2024-03-15',
+    avatar: '/api/placeholder/150/150',
+    active: true
+  },
+  {
+    id: 'EMP004',
+    username: 'sarah',
+    password: 'password123',
+    name: 'Sarah Wilson',
+    department: 'IT',
+    role: 'employee',
+    permissions: ['computers', 'sessions'], // Teknisi
+    email: 'sarah.wilson@company.com',
+    phone: '+62812345681',
+    joinDate: '2024-01-20',
+    avatar: '/api/placeholder/150/150',
+    active: true
   }
+];
+
+// Role definitions with permissions
+export const roleDefinitions = [
+  {
+    id: 'admin',
+    name: 'Administrator',
+    permissions: ['all'], // All permissions
+    description: 'Full system access'
+  },
+  {
+    id: 'kitchen_staff',
+    name: 'Kitchen Staff',
+    permissions: ['dashboard', 'kitchen', 'menu', 'attendance'],
+    description: 'Kitchen operations and menu management'
+  },
+  {
+    id: 'stock_manager',
+    name: 'Stock Manager',
+    permissions: ['dashboard', 'stock', 'menu', 'reports', 'attendance'],
+    description: 'Stock and inventory management'
+  },
+  {
+    id: 'computer_operator',
+    name: 'Computer Operator',
+    permissions: ['dashboard', 'computers', 'sessions', 'customers', 'attendance'],
+    description: 'Computer and session management'
+  },
+  {
+    id: 'technician',
+    name: 'Technician',
+    permissions: ['dashboard', 'computers', 'sessions', 'attendance'],
+    description: 'Technical support and maintenance'
+  },
+  {
+    id: 'cashier',
+    name: 'Cashier',
+    permissions: ['dashboard', 'transactions', 'customers', 'attendance'],
+    description: 'Transaction and customer management'
+  }
+];
+
+// Available permissions
+export const availablePermissions = [
+  { id: 'dashboard', name: 'Dashboard', description: 'View dashboard and statistics' },
+  { id: 'stock', name: 'Stock Management', description: 'Manage inventory and stock' },
+  { id: 'menu', name: 'Menu Management', description: 'Manage cafe menu items' },
+  { id: 'transactions', name: 'Transactions', description: 'Handle financial transactions' },
+  { id: 'reports', name: 'Reports', description: 'View and generate reports' },
+  { id: 'computers', name: 'Computer Management', description: 'Manage computer systems' },
+  { id: 'sessions', name: 'Session Management', description: 'Manage user sessions' },
+  { id: 'customers', name: 'Customer Management', description: 'Manage customer data' },
+  { id: 'kitchen', name: 'Kitchen Management', description: 'Manage kitchen operations' },
+  { id: 'attendance', name: 'Attendance', description: 'Manage attendance system' },
+  { id: 'settings', name: 'Settings', description: 'System configuration' },
+  { id: 'all', name: 'All Permissions', description: 'Complete system access' }
 ];
