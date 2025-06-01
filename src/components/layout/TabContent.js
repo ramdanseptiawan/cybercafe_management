@@ -236,10 +236,10 @@ const TabContent = ({ activeTab, settingsTab, setSettingsTab, state, handlers, i
       )}
       
       {activeTab === 'attendance' && (
-        hasAccess('admin') ? (
+        hasAccess('attendance') ? (
           <AttendanceManagement 
             staff={staff}
-            isAdmin={true}
+            isAdmin={userRole === 'admin'}
           />
         ) : <AccessDenied />
       )}
