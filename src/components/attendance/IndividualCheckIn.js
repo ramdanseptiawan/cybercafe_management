@@ -77,33 +77,15 @@ const IndividualCheckIn = ({ currentUser, todayAttendance, onSubmit }) => {
   const handleStartAttendance = async () => {
     setLoading(true);
     setError(null);
-    setStep('camera');
-    setShowCamera(true);
-    
-    try {
-      await startCamera();
-    } catch (error) {
-      setError('Gagal mengakses kamera. Pastikan kamera tersedia.');
-      setShowCamera(false);
-      setStep('ready');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCapture = async () => {
     setIsGettingLocation(true);
-    let validation = null; // Deklarasi di awal fungsi
     
     try {
+      // AMBIL GPS DULU sebelum kamera
       const currentLocationData = await getCurrentLocation();
       
       // Validasi lokasi untuk mendapatkan jarak
-      validation = validateMultipleLocations(allowedLocations);
+      const validation = validateMultipleLocations(allowedLocations);
       setLocationValidation(validation);
-      
-      // Store capture data dengan informasi jarak dari validasi
-      setCaptureTime(formatTimestamp());
       
       if (currentLocationData) {
         setCaptureLocation({
@@ -115,44 +97,57 @@ const IndividualCheckIn = ({ currentUser, todayAttendance, onSubmit }) => {
         
         // Ambil jarak dari hasil validasi
         if (validation && validation.distance !== undefined) {
-          setCaptureDistance(Math.round(validation.distance * 10) / 10); // Bulatkan ke 1 desimal
-        } else {
-          setCaptureDistance(null);
+          setCaptureDistance(Math.round(validation.distance * 10) / 10);
         }
-      } else {
-        setCaptureLocation(null);
-        setCaptureAddress('Lokasi tidak tersedia');
-        setCaptureAccuracy(null);
-        setCaptureDistance(null);
       }
+      
+      // Cek apakah lokasi valid
+      if (!validation?.isValid) {
+        setError(`Anda berada ${Math.round(validation?.distance || 0)}m dari kantor. Maksimal ${allowedLocations[0]?.radius || 100}m.`);
+        setLoading(false);
+        setIsGettingLocation(false);
+        return;
+      }
+      
+      // Jika lokasi valid, baru buka kamera
+      setStep('camera');
+      setShowCamera(true);
+      await startCamera();
+      
     } catch (error) {
-      console.error('Error getting location:', error);
-      setCaptureLocation(null);
-      setCaptureAddress('Lokasi tidak tersedia');
-      setCaptureAccuracy(null);
-      setCaptureDistance(null);
-      // Reset validation jika terjadi error
-      validation = null;
-      setLocationValidation(null);
+      setError('Gagal mendapatkan lokasi atau mengakses kamera.');
+      setShowCamera(false);
+      setStep('ready');
+    } finally {
+      setLoading(false);
+      setIsGettingLocation(false);
     }
-    setIsGettingLocation(false);
-  
-    // Then capture photo
+  };
+
+  const handleCapture = async () => {
+    // Langsung ambil foto tanpa GPS lagi
     const photoData = capturePhoto();
-    if (photoData) {
-      setAttendanceData(prev => ({
-        ...prev,
-        photo: photoData,
-        location: {
-          name: validation?.nearestLocation?.name || 'Main Office',
-          latitude: captureLocation?.latitude,
-          longitude: captureLocation?.longitude,
-          distance: captureDistance,
-          isValid: validation?.isValid || false
-        },
-        timestamp: new Date().toISOString()
-      }));
+    if (!photoData) {
+      setError('Gagal mengambil foto');
+      return;
     }
+  
+    // Set timestamp saat foto diambil
+    setCaptureTime(formatTimestamp());
+    
+    // Gunakan data lokasi yang sudah diambil sebelumnya
+    setAttendanceData(prev => ({
+      ...prev,
+      photo: photoData,
+      location: {
+        name: locationValidation?.nearestLocation?.name || 'Main Office',
+        latitude: captureLocation?.latitude,
+        longitude: captureLocation?.longitude,
+        distance: captureDistance,
+        isValid: locationValidation?.isValid || false
+      },
+      timestamp: new Date().toISOString()
+    }));
   };
 
   const handleUpload = async () => {
@@ -499,12 +494,12 @@ const IndividualCheckIn = ({ currentUser, todayAttendance, onSubmit }) => {
           {loading ? (
             <>
               <div className="animate-spin w-4 h-4 border border-white border-t-transparent rounded-full"></div>
-              Getting Location...
+              {isGettingLocation ? 'Verifying Location...' : 'Starting Camera...'}
             </>
           ) : (
             <>
               <MapPin className="w-4 h-4" />
-              Capture Location
+              Verify Location & Start Camera
             </>
           )}
         </button>
