@@ -246,7 +246,7 @@ const TabContent = ({ activeTab, settingsTab, setSettingsTab, state, handlers, i
       
       {/* EMPLOYEE ONLY SECTIONS */}
       {activeTab === 'individual-attendance' && (
-        hasAccess('employee') ? (
+        (userRole === 'employee' || hasAccess('attendance')) ? (
           <IndividualAttendance 
             currentUser={{
               id: user?.id || 'EMP001',
