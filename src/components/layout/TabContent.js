@@ -94,7 +94,7 @@ const TabContent = ({ activeTab, settingsTab, setSettingsTab, state, handlers, i
     <div className="flex items-center justify-center h-64">
       <div className="text-center">
         <h3 className="text-lg font-medium text-gray-900 mb-2">Access Denied</h3>
-        <p className="text-gray-500">You don't have permission to access this section.</p>
+        <p className="text-gray-500">You don&apos;t have permission to access this section.</p>
       </div>
     </div>
   );

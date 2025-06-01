@@ -28,7 +28,7 @@ const EmployeeDashboard = ({
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg p-6 text-white">
         <h1 className="text-2xl font-bold mb-2">Welcome Back, {user?.name}!</h1>
         <p className="text-blue-100">Department: {user?.department}</p>
-        <p className="text-blue-100">Here's your daily overview</p>
+        <p className="text-blue-100">Here&apos;s your daily overview</p>
       </div>
 
       {/* Quick Actions based on permissions */}
@@ -41,7 +41,7 @@ const EmployeeDashboard = ({
           </div>
           <div className="space-y-2 mb-4">
             <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Today's Status:</span>
+              <span className="text-gray-600">Today&apos;s Status:</span>
               <span className={`font-medium ${
                 todayAttendance?.checkIn ? 'text-green-600' : 'text-red-600'
               }`}>
