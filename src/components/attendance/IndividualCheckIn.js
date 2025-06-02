@@ -1,509 +1,511 @@
-import React, { useState, useEffect } from 'react';
-import { Clock, MapPin, Camera, CheckCircle, AlertCircle, Upload, RotateCcw, X } from 'lucide-react';
-import { useGeolocation } from '../../hooks/useGeolocation';
-import { useCamera } from '../../hooks/useCamera';
+import React, { useState, useEffect, useRef } from 'react';
+import { Camera, MapPin, Clock, AlertTriangle, CheckCircle, Loader, RotateCcw, X } from 'lucide-react';
 
 const IndividualCheckIn = ({ currentUser, todayAttendance, onSubmit }) => {
-  const [step, setStep] = useState('ready'); // ready -> camera -> confirm
-  const [attendanceData, setAttendanceData] = useState({
-    photo: null,
-    location: null,
-    timestamp: null
-  });
-  const [showCamera, setShowCamera] = useState(false);
+  const [photo, setPhoto] = useState(null);
+  const [location, setLocation] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [showPreview, setShowPreview] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState('');
-  const [captureTime, setCaptureTime] = useState('');
-  const [captureLocation, setCaptureLocation] = useState(null);
-  const [captureAddress, setCaptureAddress] = useState('');
-  const [captureAccuracy, setCaptureAccuracy] = useState(null);
-  const [locationValidation, setLocationValidation] = useState(null);
-  const [captureDistance, setCaptureDistance] = useState(null);
-  const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [distance, setDistance] = useState(null);
+  const [cameraActive, setCameraActive] = useState(false);
+  const [showCameraModal, setShowCameraModal] = useState(false);
+  const [devices, setDevices] = useState([]);
+  const [selectedDevice, setSelectedDevice] = useState('');
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const streamRef = useRef(null);
 
-  const { getCurrentLocation, validateMultipleLocations } = useGeolocation();
-  const {
-    videoRef,
-    canvasRef,
-    capturedPhoto,
-    isStreaming,
-    error: cameraError,
-    devices,
-    uploading,
-    startCamera,
-    stopCamera,
-    capturePhoto,
-    switchCamera,
-    retakePhoto
-  } = useCamera();
-
-  useEffect(() => {
-    if (capturedPhoto) {
-      setShowPreview(true);
-    }
-  }, [capturedPhoto]);
-
-  // Lokasi yang diizinkan (sama seperti di CameraCapture)
-  const allowedLocations = [
-    {
-      name: 'Main Office',
-      latitude: -6.3353889,
-      longitude: 106.4733848,
-      radius: 100
+  // Office location coordinates (example: Main Office in Jakarta)
+  const officeLocations = [
+    { 
+      id: 1, 
+      name: 'Main Office', 
+      latitude: -6.2088, 
+      longitude: 106.8456, 
+      radius: 100 // meters
     },
-    {
-      name: 'Branch Office',
-      latitude: -6.2000,
-      longitude: 106.8400,
-      radius: 100
+    { 
+      id: 2, 
+      name: 'Branch Office', 
+      latitude: -6.1751, 
+      longitude: 106.8650, 
+      radius: 100 // meters
+    },
+    { 
+      id: 3, 
+      name: 'Cabang Palmerah', 
+      latitude: -6.2081704, 
+      longitude: 106.7938223, 
+      radius: 100 // meters
     }
   ];
 
-  // Format timestamp dengan format: hari:bulan:tahun Jam:Menit:detik
-  const formatTimestamp = () => {
-    const now = new Date();
-    const day = String(now.getDate()).padStart(2, '0');
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const year = now.getFullYear();
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const seconds = String(now.getSeconds()).padStart(2, '0');
-    
-    return `${day}:${month}:${year} ${hours}:${minutes}:${seconds}`;
+  useEffect(() => {
+    // Get user location on component mount
+    getLocation();
+    getVideoDevices();
+
+    // Cleanup on unmount
+    return () => {
+      stopCamera();
+    };
+  }, [todayAttendance]);
+
+  const getVideoDevices = async () => {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(device => device.kind === 'videoinput');
+      setDevices(videoDevices);
+      if (videoDevices.length > 0 && !selectedDevice) {
+        setSelectedDevice(videoDevices[0].deviceId);
+      }
+    } catch (err) {
+      console.error('Error getting devices:', err);
+    }
   };
 
-  const handleStartAttendance = async () => {
-    setLoading(true);
-    setError(null);
-    setIsGettingLocation(true);
-    
+  const startCamera = async () => {
     try {
-      // AMBIL GPS DULU sebelum kamera
-      const currentLocationData = await getCurrentLocation();
+      if (streamRef.current) return; // Don't start if already running
       
-      // Validasi lokasi untuk mendapatkan jarak
-      const validation = validateMultipleLocations(allowedLocations);
-      setLocationValidation(validation);
-      
-      if (currentLocationData) {
-        setCaptureLocation({
-          latitude: currentLocationData.latitude,
-          longitude: currentLocationData.longitude
-        });
-        setCaptureAddress(currentLocationData.address || 'Lokasi tidak tersedia');
-        setCaptureAccuracy(currentLocationData.accuracy);
-        
-        // Ambil jarak dari hasil validasi
-        if (validation && validation.distance !== undefined) {
-          setCaptureDistance(Math.round(validation.distance * 10) / 10);
+      setError(null);
+      const constraints = {
+        video: {
+          deviceId: selectedDevice ? { exact: selectedDevice } : undefined,
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: 'user' // Front camera for selfie
+        },
+        audio: false
+      };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+      streamRef.current = stream;
+      setCameraActive(true);
+    } catch (err) {
+      console.error('Error accessing camera:', err);
+      setError('Tidak dapat mengakses kamera. Pastikan Anda memberikan izin kamera.');
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setCameraActive(false);
+  };
+
+  const switchCamera = async () => {
+    if (devices.length <= 1) return;
+    
+    const currentIndex = devices.findIndex(device => device.deviceId === selectedDevice);
+    const nextIndex = (currentIndex + 1) % devices.length;
+    const nextDevice = devices[nextIndex];
+    
+    if (nextDevice) {
+      setSelectedDevice(nextDevice.deviceId);
+      if (cameraActive) {
+        stopCamera();
+        setTimeout(() => {
+          setSelectedDevice(nextDevice.deviceId);
+          startCamera();
+        }, 100);
+      }
+    }
+  };
+
+  const getLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const userLat = position.coords.latitude;
+          const userLng = position.coords.longitude;
+          
+          // Find nearest office and calculate distance
+          let nearestOffice = null;
+          let minDistance = Infinity;
+          
+          officeLocations.forEach(office => {
+            const dist = calculateDistance(
+              userLat, userLng,
+              office.latitude, office.longitude
+            );
+            
+            if (dist < minDistance) {
+              minDistance = dist;
+              nearestOffice = { ...office, distance: dist };
+            }
+          });
+          
+          setLocation(nearestOffice);
+          setDistance(minDistance);
+        },
+        (error) => {
+          console.error('Error getting location:', error);
+          setError('Tidak dapat mendapatkan lokasi Anda. Pastikan GPS diaktifkan.');
         }
+      );
+    } else {
+      setError('Geolocation tidak didukung oleh browser Anda.');
+    }
+  };
+
+  // Haversine formula to calculate distance between two coordinates in meters
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371e3; // Earth radius in meters
+    const φ1 = lat1 * Math.PI/180;
+    const φ2 = lat2 * Math.PI/180;
+    const Δφ = (lat2-lat1) * Math.PI/180;
+    const Δλ = (lon2-lon1) * Math.PI/180;
+
+    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ/2) * Math.sin(Δλ/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+    return Math.round(R * c); // Distance in meters
+  };
+
+  const capturePhoto = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+  
+    const canvas = canvasRef.current;
+    const video = videoRef.current;
+    
+    // Detect if mobile device
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
+    
+    if (isMobile) {
+      // For mobile: use portrait orientation (higher than wide)
+      const aspectRatio = video.videoWidth / video.videoHeight;
+      
+      if (aspectRatio > 1) {
+        // Video is landscape, make canvas portrait
+        canvas.width = Math.min(video.videoHeight, 480); // Max width 480px
+        canvas.height = canvas.width * 1.33; // 4:3 ratio but taller
+      } else {
+        // Video is already portrait
+        canvas.width = Math.min(video.videoWidth, 480);
+        canvas.height = Math.min(video.videoHeight, 640); // Max height 640px
+      }
+    } else {
+      // For desktop: use original video dimensions
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+    }
+    
+    const ctx = canvas.getContext('2d');
+    
+    // Calculate scaling and positioning for mobile
+    if (isMobile) {
+      const scaleX = canvas.width / video.videoWidth;
+      const scaleY = canvas.height / video.videoHeight;
+      const scale = Math.max(scaleX, scaleY); // Use larger scale to fill canvas
+      
+      const scaledWidth = video.videoWidth * scale;
+      const scaledHeight = video.videoHeight * scale;
+      
+      const offsetX = (canvas.width - scaledWidth) / 2;
+      const offsetY = (canvas.height - scaledHeight) / 2;
+      
+      // Mirror the image for selfie effect
+      ctx.scale(-1, 1);
+      ctx.drawImage(
+        video, 
+        -offsetX - scaledWidth, 
+        offsetY, 
+        scaledWidth, 
+        scaledHeight
+      );
+    } else {
+      // Desktop: use original method
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, -canvas.width, 0);
+    }
+    
+    const photoData = canvas.toDataURL('image/jpeg', 0.8);
+    setPhoto(photoData);
+    setShowCameraModal(false);
+    stopCamera();
+  };
+
+  const openCamera = () => {
+    setShowCameraModal(true);
+    startCamera();
+  };
+
+  const closeCameraModal = () => {
+    setShowCameraModal(false);
+    stopCamera();
+  };
+
+  const retakePhoto = () => {
+    setPhoto(null);
+    openCamera();
+  };
+
+  const handleSubmit = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Verify location is within allowed radius
+      if (!location) {
+        throw new Error('Lokasi tidak tersedia. Pastikan GPS diaktifkan.');
       }
       
-      // Cek apakah lokasi valid
-      if (!validation?.isValid) {
-        setError(`Anda berada ${Math.round(validation?.distance || 0)}m dari kantor. Maksimal ${allowedLocations[0]?.radius || 100}m.`);
-        setLoading(false);
-        setIsGettingLocation(false);
-        return;
+      if (location.distance > location.radius) {
+        throw new Error(`Anda terlalu jauh dari ${location.name}. Jarak Anda saat ini: ${location.distance}m (maksimal ${location.radius}m).`);
       }
       
-      // Jika lokasi valid, baru buka kamera
-      setStep('camera');
-      setShowCamera(true);
-      await startCamera();
+      // Verify photo is taken for BOTH check-in and check-out
+      if (!photo) {
+        const actionType = todayAttendance && todayAttendance.checkOut === '--' ? 'keluar' : 'masuk';
+        throw new Error(`Silakan ambil foto untuk absen ${actionType}.`);
+      }
       
-    } catch (error) {
-      setError('Gagal mendapatkan lokasi atau mengakses kamera.');
-      setShowCamera(false);
-      setStep('ready');
+      // Submit attendance data
+      await onSubmit({
+        photo,
+        location
+      });
+      
+      // Reset state after successful submission
+      setPhoto(null);
+      
+    } catch (err) {
+      setError(err.message);
     } finally {
       setLoading(false);
-      setIsGettingLocation(false);
     }
   };
 
-  const handleCapture = async () => {
-    // Langsung ambil foto tanpa GPS lagi
-    const photoData = capturePhoto();
-    if (!photoData) {
-      setError('Gagal mengambil foto');
-      return;
-    }
-  
-    // Set timestamp saat foto diambil
-    setCaptureTime(formatTimestamp());
-    
-    // Gunakan data lokasi yang sudah diambil sebelumnya
-    setAttendanceData(prev => ({
-      ...prev,
-      photo: photoData,
-      location: {
-        name: locationValidation?.nearestLocation?.name || 'Main Office',
-        latitude: captureLocation?.latitude,
-        longitude: captureLocation?.longitude,
-        distance: captureDistance,
-        isValid: locationValidation?.isValid || false
-      },
-      timestamp: new Date().toISOString()
-    }));
-  };
-
-  const handleUpload = async () => {
-    if (!capturedPhoto) return;
-
-    try {
-      setUploadStatus('Mengunggah...');
-      
-      // Simulate upload process
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      await onSubmit(attendanceData);
-      setUploadStatus('Berhasil diunggah!');
-      
-      // Auto close after success
-      setTimeout(() => {
-        handleCancel();
-      }, 2000);
-    } catch (error) {
-      setUploadStatus('Gagal mengunggah. Coba lagi.');
-    }
-  };
-
-  const handleCancel = () => {
-    stopCamera();
-    retakePhoto();
-    setShowPreview(false);
-    setShowCamera(false);
-    setUploadStatus('');
-    setCaptureTime('');
-    setCaptureLocation(null);
-    setCaptureAddress('');
-    setCaptureAccuracy(null);
-    setIsGettingLocation(false);
-    setStep('ready');
-    setAttendanceData({ photo: null, location: null, timestamp: null });
-  };
-
-  const handleRetake = async () => {
-    // Reset all capture data
-    retakePhoto();
-    setShowPreview(false);
-    setUploadStatus('');
-    setCaptureTime('');
-    setCaptureLocation(null);
-    setCaptureAddress('');
-    setCaptureAccuracy(null);
-    setIsGettingLocation(false);
-    
-    // Immediately restart camera
-    try {
-      await startCamera();
-    } catch (error) {
-      console.error('Error restarting camera:', error);
-    }
-  };
-
-  const getCurrentTime = () => {
-    return new Date().toLocaleTimeString('id-ID', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    });
-  };
-
-  const getCurrentDate = () => {
-    return new Date().toLocaleDateString('id-ID', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
-
-  // Preview dengan styling yang sama persis dengan CameraCapture.js
-  if (showPreview && capturedPhoto) {
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold">Preview Foto Absensi</h3>
-            <button
-              onClick={handleCancel}
-              className="p-2 hover:bg-gray-100 rounded-full"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          <div className="relative mb-4">
-            <img
-              src={capturedPhoto}
-              alt="Captured"
-              className="w-full rounded-lg"
-            />
-            
-            {/* Geotagging Overlay - sama persis dengan CameraCapture.js */}
-            <div className="absolute bottom-2 left-2 right-2 bg-black bg-opacity-70 text-white p-2 rounded text-xs">
-              <div className="flex items-center space-x-1 mb-1">
-                <MapPin className="w-3 h-3" />
-                <span className="truncate">{captureAddress}</span>
+  return (
+    <div className="space-y-6">
+      {/* Status Card */}
+      <div className={`p-4 rounded-lg ${
+        todayAttendance 
+          ? todayAttendance.checkOut !== '--' 
+            ? 'bg-green-50 border border-green-100' 
+            : 'bg-blue-50 border border-blue-100'
+          : 'bg-gray-50 border border-gray-200'
+      }`}>
+        <div className="flex items-center gap-3">
+          <Clock className={`${
+            todayAttendance 
+              ? todayAttendance.checkOut !== '--' 
+                ? 'text-green-500' 
+                : 'text-blue-500'
+              : 'text-gray-400'
+          }`} size={24} />
+          <div>
+            <h3 className="font-medium text-gray-800">
+              {todayAttendance 
+                ? todayAttendance.checkOut !== '--' 
+                  ? 'Anda sudah absen masuk & keluar hari ini' 
+                  : 'Anda sudah absen masuk hari ini'
+                : 'Anda belum absen hari ini'
+              }
+            </h3>
+            {todayAttendance && (
+              <div className="text-sm text-gray-600 mt-1">
+                <p>Masuk: {todayAttendance.checkIn}</p>
+                {todayAttendance.checkOut !== '--' && (
+                  <p>Keluar: {todayAttendance.checkOut}</p>
+                )}
               </div>
-              <div className="flex items-center space-x-1 mb-1">
-                <Clock className="w-3 h-3" />
-                <span>{captureTime}</span>
-              </div>
-              {captureLocation && (
-                <div className="text-xs opacity-75">
-                  {captureLocation.latitude.toFixed(6)}, {captureLocation.longitude.toFixed(6)}
-                  {captureDistance !== null && ` (${captureDistance}m dari kantor)`}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {uploadStatus && (
-            <div className={`mb-4 p-3 rounded-lg text-center ${
-              uploadStatus.includes('Berhasil') 
-                ? 'bg-green-100 text-green-800' 
-                : uploadStatus.includes('Gagal')
-                ? 'bg-red-100 text-red-800'
-                : 'bg-blue-100 text-blue-800'
-            }`}>
-              {uploadStatus.includes('Berhasil') && <CheckCircle className="w-5 h-5 inline mr-2" />}
-              {uploadStatus}
-            </div>
-          )}
-
-          <div className="flex space-x-3">
-            <button
-              onClick={handleRetake}
-              className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg flex items-center justify-center space-x-2"
-              disabled={uploading}
-            >
-              <RotateCcw className="w-4 h-4" />
-              <span>Ambil Ulang</span>
-            </button>
-            
-            <button
-              onClick={handleUpload}
-              disabled={uploading || uploadStatus.includes('Berhasil')}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white py-2 px-4 rounded-lg flex items-center justify-center space-x-2"
-            >
-              <Upload className="w-4 h-4" />
-              <span>{uploading ? 'Mengunggah...' : 'Upload'}</span>
-            </button>
+            )}
           </div>
         </div>
       </div>
-    );
-  }
 
-  // Camera View - sama persis dengan CameraCapture.js
-  if (showCamera) {
-    return (
-      <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-        {/* Camera View */}
-        <div className="relative bg-black aspect-video">
-          {cameraError && (
-            <div className="absolute inset-0 flex items-center justify-center bg-red-900 bg-opacity-90 z-10">
-              <div className="text-center text-white p-6">
-                <Camera className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                <p className="text-lg mb-4">{cameraError}</p>
-                <button
-                  onClick={startCamera}
-                  className="bg-red-600 hover:bg-red-700 px-6 py-2 rounded-lg transition-colors"
-                >
-                  Coba Lagi
-                </button>
+      {/* Location Status */}
+      <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <div className="flex items-center gap-3 mb-3">
+          <MapPin className="text-blue-500" size={20} />
+          <h4 className="font-medium text-gray-800">Status Lokasi</h4>
+        </div>
+        
+        {location ? (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Lokasi terdekat:</span>
+              <span className="font-medium">{location.name}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Jarak:</span>
+              <span className={`font-medium ${
+                location.distance <= location.radius ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {location.distance}m
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Status:</span>
+              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                location.distance <= location.radius 
+                  ? 'bg-green-100 text-green-800' 
+                  : 'bg-red-100 text-red-800'
+              }`}>
+                {location.distance <= location.radius ? 'Dalam jangkauan' : 'Terlalu jauh'}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Loader className="animate-spin text-blue-500" size={16} />
+            <span className="text-sm text-gray-600">Mendapatkan lokasi...</span>
+          </div>
+        )}
+      </div>
+
+      {/* Photo Section */}
+      <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <div className="flex items-center gap-3 mb-3">
+          <Camera className="text-purple-500" size={20} />
+          <h4 className="font-medium text-gray-800">Foto Absensi</h4>
+        </div>
+        
+        {photo ? (
+          <div className="space-y-3">
+            <img 
+              src={photo} 
+              alt="Foto absensi" 
+              className="w-full max-w-xs mx-auto rounded-lg border-2 border-gray-200"
+            />
+            <button
+              onClick={retakePhoto}
+              className="w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
+            >
+              <RotateCcw size={16} />
+              Ambil Ulang Foto
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={openCamera}
+            className="w-full bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-2"
+          >
+            <Camera size={20} />
+            Ambil Foto
+          </button>
+        )}
+      </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="text-red-600" size={20} />
+            <p className="text-red-700 text-sm">{error}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Submit Button */}
+      <button
+        onClick={handleSubmit}
+        disabled={loading || !location || (location.distance > location.radius) || !photo}
+        className={`w-full py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
+          loading || !location || (location.distance > location.radius) || !photo
+            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            : todayAttendance && todayAttendance.checkOut === '--'
+              ? 'bg-red-600 text-white hover:bg-red-700'
+              : 'bg-green-600 text-white hover:bg-green-700'
+        }`}
+      >
+        {loading ? (
+          <>
+            <Loader className="animate-spin" size={20} />
+            Memproses...
+          </>
+        ) : (
+          <>
+            <CheckCircle size={20} />
+            {todayAttendance && todayAttendance.checkOut === '--' ? 'Absen Keluar' : 'Absen Masuk'}
+          </>
+        )}
+      </button>
+
+      {/* Camera Modal */}
+      {showCameraModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50">
+          <div className={`bg-white rounded-lg p-6 w-full mx-4 ${
+            /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768
+              ? 'max-w-sm max-h-[90vh] overflow-y-auto' // Mobile: lebih sempit dan tinggi
+              : 'max-w-md' // Desktop: ukuran normal
+          }`}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Ambil Foto Absensi</h3>
+              <button
+                onClick={closeCameraModal}
+                className="p-2 hover:bg-gray-100 rounded-full"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                <p className="text-red-700 text-sm">{error}</p>
+              </div>
+            )}
+
+            <div className={`relative bg-black rounded-lg overflow-hidden mb-4 ${
+              /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768
+                ? 'aspect-[3/4]' // Mobile: rasio 3:4 (lebih tinggi)
+                : 'aspect-video' // Desktop: rasio 16:9
+            }`}>
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover"
+              />
+              
+              {/* Camera controls overlay */}
+              <div className="absolute top-4 right-4">
+                {devices.length > 1 && (
+                  <button
+                    onClick={switchCamera}
+                    className="p-2 bg-black bg-opacity-50 hover:bg-opacity-70 rounded-lg text-white transition-colors"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             </div>
-          )}
 
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            className="w-full h-full object-cover transform scale-x-[-1]"
-            style={{
-              minHeight: window.innerWidth <= 768 ? '400px' : '300px'
-            }}
-          />
-          
-          {/* Overlay Controls - sama persis dengan CameraCapture.js */}
-          <div className="absolute top-4 left-4 right-4 flex justify-between items-start">
-            <div className="flex space-x-2">
-              {isStreaming && (
-                <div className="flex items-center space-x-1 bg-green-600 px-2 py-1 rounded-full">
-                  <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                  <span className="text-white text-xs">LIVE</span>
-                </div>
-              )}
-              {isGettingLocation && (
-                <div className="flex items-center space-x-1 bg-blue-600 px-2 py-1 rounded-full">
-                  <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                  <span className="text-white text-xs">GPS</span>
-                </div>
-              )}
-            </div>
-            
-            <div className="flex space-x-2">
-              {devices.length > 1 && (
-                <button
-                  onClick={switchCamera}
-                  className="p-2 bg-black bg-opacity-50 hover:bg-opacity-70 rounded-lg text-white transition-colors"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                </button>
-              )}
+            <div className="flex gap-3">
               <button
-                onClick={handleCancel}
-                className="p-2 bg-black bg-opacity-50 hover:bg-opacity-70 rounded-lg text-white transition-colors"
+                onClick={closeCameraModal}
+                className="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors"
               >
-                <X className="w-4 h-4" />
+                Batal
+              </button>
+              <button
+                onClick={capturePhoto}
+                disabled={!cameraActive}
+                className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                <Camera size={16} />
+                Ambil Foto
               </button>
             </div>
           </div>
-
-          {/* Bottom Controls - sama persis dengan CameraCapture.js */}
-          <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2">
-            <div className="flex items-center space-x-4">
-              {!isStreaming ? (
-                <button
-                  onClick={startCamera}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full font-semibold flex items-center space-x-2 transition-all transform hover:scale-105"
-                >
-                  <Camera className="w-5 h-5" />
-                  <span>Mulai Kamera</span>
-                </button>
-              ) : (
-                <>
-                  <button
-                    onClick={handleCapture}
-                    disabled={isGettingLocation}
-                    className="w-16 h-16 bg-white hover:bg-gray-100 disabled:bg-gray-300 rounded-full flex items-center justify-center transition-all transform hover:scale-105 shadow-lg"
-                  >
-                    <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center">
-                      <Camera className="w-6 h-6 text-white" />
-                    </div>
-                  </button>
-                  
-                  <button
-                    onClick={stopCamera}
-                    className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-full font-semibold transition-colors"
-                  >
-                    Stop
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Hidden Canvas for Photo Capture */}
-        <canvas ref={canvasRef} className="hidden" />
-      </div>
-    );
-  }
-
-  // Ready State - tampilan awal sebelum kamera
-  return (
-    <div className="space-y-6">
-      {/* Check In Header */}
-      <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">Check In</h2>
-        <p className="text-gray-600">Welcome, {currentUser?.name || 'John Doe'}</p>
-        <p className="text-sm text-gray-500">{new Date().toLocaleString('id-ID', {
-          day: '2-digit',
-          month: '2-digit', 
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit'
-        })}</p>
-      </div>
-
-      {/* Verify Location Section */}
-      <div className="text-center">
-        <div className="bg-blue-100 rounded-full p-4 w-16 h-16 mx-auto mb-4">
-          <MapPin className="text-blue-600 w-8 h-8" />
-        </div>
-        <h3 className="text-lg font-semibold text-gray-800 mb-2">Verify Location</h3>
-        <p className="text-gray-600 text-sm mb-4">
-          We need to verify your location for attendance
-        </p>
-        
-        {/* Authorized Locations */}
-        <div className="bg-gray-50 rounded-lg p-3 mb-4">
-          <p className="text-xs font-medium text-gray-700 mb-2">Authorized Locations:</p>
-          <div className="space-y-1">
-            {allowedLocations.map((loc, index) => (
-              <div key={index} className="text-xs text-gray-600 flex items-center justify-center gap-1">
-                <MapPin className="w-3 h-3" />
-                {loc.name} (±{loc.radius || 100}m radius)
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Today's Attendance Status */}
-      {todayAttendance ? (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h3 className="font-semibold text-blue-800 mb-2">Absensi Hari Ini</h3>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="text-gray-600">Check-in:</span>
-              <div className="font-medium">{todayAttendance.checkIn || '--'}</div>
-            </div>
-            <div>
-              <span className="text-gray-600">Check-out:</span>
-              <div className="font-medium">{todayAttendance.checkOut || '--'}</div>
-            </div>
-            <div className="col-span-2">
-              <span className="text-gray-600">Total Jam:</span>
-              <div className="font-medium">{todayAttendance.hours || '--'}</div>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
-          <p className="text-gray-600">Belum ada absensi hari ini</p>
         </div>
       )}
 
-      {/* Error Display */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <div className="flex items-center gap-2 text-red-800">
-            <AlertCircle size={20} />
-            <span>{error}</span>
-          </div>
-        </div>
-      )}
-
-      {/* Capture Location Button */}
-      <div className="text-center">
-        <button
-          onClick={handleStartAttendance}
-          disabled={loading}
-          className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-        >
-          {loading ? (
-            <>
-              <div className="animate-spin w-4 h-4 border border-white border-t-transparent rounded-full"></div>
-              {isGettingLocation ? 'Verifying Location...' : 'Starting Camera...'}
-            </>
-          ) : (
-            <>
-              <MapPin className="w-4 h-4" />
-              Verify Location & Start Camera
-            </>
-          )}
-        </button>
-      </div>
+      {/* Hidden canvas for photo capture */}
+      <canvas ref={canvasRef} style={{ display: 'none' }} />
     </div>
   );
 };

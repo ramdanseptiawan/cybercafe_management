@@ -141,23 +141,50 @@ const IndividualHistory = ({ attendanceRecords, currentUser }) => {
                   </div>
                 </div>
                 
-                {record.photo && (
-                  <div className="ml-4">
-                    <div className="w-12 h-12 rounded-lg overflow-hidden border-2 border-gray-200">
-                      <img
-                        src={record.photo}
-                        alt="Foto absensi"
-                        className="w-full h-full object-cover"
-                      />
+                {/* Tampilkan foto check-in dan check-out */}
+                <div className="ml-4 flex gap-2">
+                  {record.checkInPhoto && (
+                    <div className="text-center">
+                      <div className="w-12 h-12 rounded-lg overflow-hidden border-2 border-green-200">
+                        <img
+                          src={record.checkInPhoto}
+                          alt="Foto check-in"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <span className="text-xs text-green-600 mt-1 block">Masuk</span>
                     </div>
-                  </div>
-                )}
+                  )}
+                  {record.checkOutPhoto && (
+                    <div className="text-center">
+                      <div className="w-12 h-12 rounded-lg overflow-hidden border-2 border-red-200">
+                        <img
+                          src={record.checkOutPhoto}
+                          alt="Foto check-out"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <span className="text-xs text-red-600 mt-1 block">Keluar</span>
+                    </div>
+                  )}
+                  {/* Fallback untuk foto lama */}
+                  {!record.checkInPhoto && !record.checkOutPhoto && record.photo && (
+                    <div className="text-center">
+                      <div className="w-12 h-12 rounded-lg overflow-hidden border-2 border-gray-200">
+                        <img
+                          src={record.photo}
+                          alt="Foto absensi"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           ))
         )}
       </div>
-
       {/* Photo Modal */}
       {selectedRecord && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -178,15 +205,29 @@ const IndividualHistory = ({ attendanceRecords, currentUser }) => {
                 <span className="ml-2 font-medium">{formatDate(selectedRecord.date)}</span>
               </div>
               
-              {selectedRecord.photo && (
-                <div className="text-center">
-                  <img
-                    src={selectedRecord.photo}
-                    alt="Foto absensi"
-                    className="w-full max-w-xs mx-auto rounded-lg border-2 border-gray-200"
-                  />
-                </div>
-              )}
+              {/* Tampilkan kedua foto di modal */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {selectedRecord.checkInPhoto && (
+                  <div className="text-center">
+                    <h4 className="text-sm font-medium text-green-600 mb-2">Foto Check-in</h4>
+                    <img
+                      src={selectedRecord.checkInPhoto}
+                      alt="Foto check-in"
+                      className="w-full max-w-xs mx-auto rounded-lg border-2 border-green-200"
+                    />
+                  </div>
+                )}
+                {selectedRecord.checkOutPhoto && (
+                  <div className="text-center">
+                    <h4 className="text-sm font-medium text-red-600 mb-2">Foto Check-out</h4>
+                    <img
+                      src={selectedRecord.checkOutPhoto}
+                      alt="Foto check-out"
+                      className="w-full max-w-xs mx-auto rounded-lg border-2 border-red-200"
+                    />
+                  </div>
+                )}
+              </div>
               
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
