@@ -37,8 +37,8 @@ const IndividualCheckIn = ({ currentUser, todayAttendance, onSubmit }) => {
     { 
       id: 3, 
       name: 'Cabang Palmerah', 
-      latitude: -6.2081704, 
-      longitude: 106.7938223, 
+      latitude: -6.3353813, 
+      longitude: 106.4733707, 
       radius: 100 // meters
     }
   ];

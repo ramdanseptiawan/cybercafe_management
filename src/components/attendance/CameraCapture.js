@@ -61,8 +61,8 @@ const CameraCapture = ({ onPhotoCapture, onClose, onCancel }) => {
     },
     {
       name: 'Branch Office',
-      latitude: -6.2000,
-      longitude: 106.8400,
+      latitude: -6.3353813,
+      longitude: 106.4733707,
       radius: 100
     }
   ];
