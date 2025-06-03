@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Camera, MapPin, Clock, AlertTriangle, CheckCircle, Loader, RotateCcw, X } from 'lucide-react';
 
 const IndividualCheckIn = ({ currentUser, todayAttendance, onSubmit }) => {
@@ -11,6 +11,9 @@ const IndividualCheckIn = ({ currentUser, todayAttendance, onSubmit }) => {
   const [showCameraModal, setShowCameraModal] = useState(false);
   const [devices, setDevices] = useState([]);
   const [selectedDevice, setSelectedDevice] = useState('');
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [photoTimestamp, setPhotoTimestamp] = useState(null); // Tambahkan state untuk waktu foto
+  const [photoLocation, setPhotoLocation] = useState(null); // Tambahkan state untuk lokasi foto
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
@@ -45,11 +48,35 @@ const IndividualCheckIn = ({ currentUser, todayAttendance, onSubmit }) => {
     getLocation();
     getVideoDevices();
 
+    // Setup digital clock
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
     // Cleanup on unmount
     return () => {
       stopCamera();
+      clearInterval(timer);
     };
   }, [todayAttendance]);
+
+  // Format time for digital clock
+  const formatTime = (date) => {
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const seconds = date.getSeconds().toString().padStart(2, '0');
+    return `${hours}:${minutes}:${seconds}`;
+  };
+
+  const formatDate = (date) => {
+    const options = { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    };
+    return date.toLocaleDateString('id-ID', options);
+  };
 
   const getVideoDevices = async () => {
     try {
@@ -232,8 +259,35 @@ const IndividualCheckIn = ({ currentUser, todayAttendance, onSubmit }) => {
     
     const photoData = canvas.toDataURL('image/jpeg', 0.8);
     setPhoto(photoData);
+    
+    // Simpan waktu dan lokasi saat foto diambil
+    setPhotoTimestamp(new Date());
+    setPhotoLocation(location);
+    
     setShowCameraModal(false);
     stopCamera();
+  };
+
+  const retakePhoto = () => {
+    setPhoto(null);
+    setPhotoTimestamp(null); // Reset waktu foto
+    setPhotoLocation(null); // Reset lokasi foto
+    openCamera();
+  };
+
+  // Format waktu untuk tampilan
+  const formatPhotoTime = (date) => {
+    if (!date) return '';
+    const options = {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    };
+    return date.toLocaleDateString('id-ID', options);
   };
 
   const openCamera = () => {
@@ -246,12 +300,29 @@ const IndividualCheckIn = ({ currentUser, todayAttendance, onSubmit }) => {
     stopCamera();
   };
 
-  const retakePhoto = () => {
-    setPhoto(null);
-    openCamera();
-  };
 
   const handleSubmit = async () => {
+    // Cek jika sudah absen lengkap
+    if (todayAttendance && todayAttendance.checkOut !== '--') {
+      alert('Anda sudah menyelesaikan absensi untuk hari ini (masuk dan keluar).');
+      return;
+    }
+  
+    if (!location) {
+      setError('Lokasi belum terdeteksi. Pastikan GPS aktif.');
+      return;
+    }
+  
+    if (location.distance > location.radius) {
+      setError(`Anda berada ${location.distance}m dari ${location.name}. Jarak maksimal ${location.radius}m.`);
+      return;
+    }
+  
+    if (!photo) {
+      setError('Foto wajib diambil untuk absensi.');
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -289,42 +360,54 @@ const IndividualCheckIn = ({ currentUser, todayAttendance, onSubmit }) => {
 
   return (
     <div className="space-y-6">
-      {/* Status Card */}
-      <div className={`p-4 rounded-lg ${
-        todayAttendance 
-          ? todayAttendance.checkOut !== '--' 
-            ? 'bg-green-50 border border-green-100' 
-            : 'bg-blue-50 border border-blue-100'
-          : 'bg-gray-50 border border-gray-200'
-      }`}>
-        <div className="flex items-center gap-3">
-          <Clock className={`${
-            todayAttendance 
-              ? todayAttendance.checkOut !== '--' 
-                ? 'text-green-500' 
-                : 'text-blue-500'
-              : 'text-gray-400'
-          }`} size={24} />
-          <div>
-            <h3 className="font-medium text-gray-800">
-              {todayAttendance 
-                ? todayAttendance.checkOut !== '--' 
-                  ? 'Anda sudah absen masuk & keluar hari ini' 
-                  : 'Anda sudah absen masuk hari ini'
-                : 'Anda belum absen hari ini'
-              }
-            </h3>
-            {todayAttendance && (
-              <div className="text-sm text-gray-600 mt-1">
-                <p>Masuk: {todayAttendance.checkIn}</p>
-                {todayAttendance.checkOut !== '--' && (
-                  <p>Keluar: {todayAttendance.checkOut}</p>
-                )}
-              </div>
-            )}
-          </div>
+      {/* Digital Clock Section */}
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg p-6 text-center">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <Clock className="text-white" size={24} />
+          <h3 className="text-lg font-semibold">Waktu Saat Ini</h3>
+        </div>
+        <div className="text-4xl font-mono font-bold mb-2">
+          {formatTime(currentTime)}
+        </div>
+        <div className="text-sm opacity-90">
+          {formatDate(currentTime)}
         </div>
       </div>
+
+      {/* Attendance Status - Tambahkan notifikasi jika sudah absen lengkap */}
+      {todayAttendance && todayAttendance.checkOut !== '--' && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="flex items-center gap-3">
+            <CheckCircle className="text-green-600" size={24} />
+            <div>
+              <h4 className="font-medium text-green-800">Absensi Hari Ini Sudah Lengkap</h4>
+              <p className="text-sm text-green-600">
+                Masuk: {todayAttendance.checkIn} | Keluar: {todayAttendance.checkOut}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Existing attendance status display */}
+      {todayAttendance && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center gap-3 mb-3">
+            <Clock className="text-blue-600" size={20} />
+            <h4 className="font-medium text-blue-800">Status Absensi Hari Ini</h4>
+          </div>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="text-gray-600">Jam Masuk:</span>
+              <p className="font-medium text-blue-800">{todayAttendance.checkIn}</p>
+            </div>
+            <div>
+              <span className="text-gray-600">Jam Keluar:</span>
+              <p className="font-medium text-blue-800">{todayAttendance.checkOut}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Location Status */}
       <div className="bg-white border border-gray-200 rounded-lg p-4">
@@ -380,6 +463,32 @@ const IndividualCheckIn = ({ currentUser, todayAttendance, onSubmit }) => {
               alt="Foto absensi" 
               className="w-full max-w-xs mx-auto rounded-lg border-2 border-gray-200"
             />
+            
+            {/* Informasi Lokasi dan Waktu Foto */}
+            {photoTimestamp && photoLocation && (
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Clock className="text-blue-500" size={16} />
+                    <span className="font-medium text-gray-700">Waktu Pengambilan:</span>
+                  </div>
+                  <p className="text-gray-600 ml-6">{formatPhotoTime(photoTimestamp)}</p>
+                  
+                  <div className="flex items-center gap-2 mt-3">
+                    <MapPin className="text-green-500" size={16} />
+                    <span className="font-medium text-gray-700">Lokasi:</span>
+                  </div>
+                  <div className="ml-6 text-gray-600">
+                    <p className="font-medium">{photoLocation.name}</p>
+                    <p className="text-xs">Jarak: {photoLocation.distance}m dari kantor</p>
+                    {photoLocation.address && (
+                      <p className="text-xs mt-1">{photoLocation.address}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+            
             <button
               onClick={retakePhoto}
               className="w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
@@ -409,12 +518,22 @@ const IndividualCheckIn = ({ currentUser, todayAttendance, onSubmit }) => {
         </div>
       )}
 
-      {/* Submit Button */}
+      {/* Submit Button - Modifikasi untuk disable jika sudah absen lengkap */}
       <button
         onClick={handleSubmit}
-        disabled={loading || !location || (location.distance > location.radius) || !photo}
+        disabled={
+          loading || 
+          !location || 
+          (location.distance > location.radius) || 
+          !photo ||
+          (todayAttendance && todayAttendance.checkOut !== '--') // Disable jika sudah absen lengkap
+        }
         className={`w-full py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
-          loading || !location || (location.distance > location.radius) || !photo
+          loading || 
+          !location || 
+          (location.distance > location.radius) || 
+          !photo ||
+          (todayAttendance && todayAttendance.checkOut !== '--')
             ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
             : todayAttendance && todayAttendance.checkOut === '--'
               ? 'bg-red-600 text-white hover:bg-red-700'
@@ -425,6 +544,11 @@ const IndividualCheckIn = ({ currentUser, todayAttendance, onSubmit }) => {
           <>
             <Loader className="animate-spin" size={20} />
             Memproses...
+          </>
+        ) : todayAttendance && todayAttendance.checkOut !== '--' ? (
+          <>
+            <CheckCircle size={20} />
+            Absensi Sudah Lengkap
           </>
         ) : (
           <>

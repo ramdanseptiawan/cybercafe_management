@@ -78,41 +78,66 @@ const CameraCapture = ({ onPhotoCapture, onClose, onCancel }) => {
       setLocationValidation(validation);
       
       // Store capture data dengan informasi jarak dari validasi
-      setCaptureTime(formatTimestamp());
+      const timestamp = formatTimestamp();
+      setCaptureTime(timestamp);
+      
+      let locationData = null;
+      let address = 'Lokasi tidak tersedia';
+      let distance = null;
       
       if (currentLocationData) {
-        setCaptureLocation({
+        locationData = {
           latitude: currentLocationData.latitude,
           longitude: currentLocationData.longitude
-        });
-        setCaptureAddress(currentLocationData.address || 'Lokasi tidak tersedia');
+        };
+        setCaptureLocation(locationData);
+        address = currentLocationData.address || 'Lokasi tidak tersedia';
+        setCaptureAddress(address);
         
         // Ambil jarak dari hasil validasi
         if (validation && validation.distance !== undefined) {
-          setCaptureDistance(Math.round(validation.distance * 10) / 10); // Bulatkan ke 1 desimal
-        } else {
-          setCaptureDistance(null);
+          distance = Math.round(validation.distance * 10) / 10; // Bulatkan ke 1 desimal
+          setCaptureDistance(distance);
         }
       } else {
         setCaptureLocation(null);
-        setCaptureAddress('Lokasi tidak tersedia');
+        setCaptureAddress(address);
         setCaptureDistance(null);
+      }
+      
+      // Prepare overlay data
+      const overlayData = {
+        timestamp: timestamp,
+        location: locationData,
+        address: address,
+        distance: distance
+      };
+      
+      // Capture photo with overlay
+      const photoData = capturePhoto(overlayData);
+      if (photoData) {
+        if (onPhotoCapture) {
+          onPhotoCapture(photoData);
+        }
       }
     } catch (error) {
       console.error('Error getting location:', error);
       setCaptureLocation(null);
       setCaptureAddress('Lokasi tidak tersedia');
       setCaptureDistance(null);
-    }
-    setIsGettingLocation(false);
-
-    // Then capture photo
-    const photoData = capturePhoto();
-    if (photoData) {
-      if (onPhotoCapture) {
-        onPhotoCapture(photoData);
+      
+      // Still capture photo even if location fails
+      const photoData = capturePhoto({
+        timestamp: formatTimestamp(),
+        address: 'Lokasi tidak tersedia'
+      });
+      if (photoData) {
+        if (onPhotoCapture) {
+          onPhotoCapture(photoData);
+        }
       }
     }
+    setIsGettingLocation(false);
   };
 
   const handleUpload = async () => {

@@ -58,9 +58,9 @@ export const useCamera = () => {
     setIsStreaming(false);
   };
 
-  const capturePhoto = useCallback(() => {
+  const capturePhoto = useCallback((overlayData = {}) => {
     if (!videoRef.current || !canvasRef.current) return null;
-
+  
     const canvas = canvasRef.current;
     const video = videoRef.current;
     
@@ -72,6 +72,59 @@ export const useCamera = () => {
     ctx.scale(-1, 1);
     ctx.drawImage(video, -canvas.width, 0);
     
+    // Reset scale for overlay text
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    
+    // Add overlay with location and time if provided
+    if (overlayData.timestamp || overlayData.location || overlayData.address) {
+      const overlayHeight = 80;
+      const padding = 10;
+      
+      // Draw semi-transparent background
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+      ctx.fillRect(0, canvas.height - overlayHeight, canvas.width, overlayHeight);
+      
+      // Set text style
+      ctx.fillStyle = 'white';
+      ctx.font = '14px Arial';
+      
+      let yPosition = canvas.height - overlayHeight + 20;
+      
+      // Draw timestamp
+      if (overlayData.timestamp) {
+        ctx.fillText(`⏰ ${overlayData.timestamp}`, padding, yPosition);
+        yPosition += 20;
+      }
+      
+      // Draw address
+      if (overlayData.address) {
+        const maxWidth = canvas.width - (padding * 2);
+        const addressText = `📍 ${overlayData.address}`;
+        
+        // Truncate text if too long
+        let displayText = addressText;
+        if (ctx.measureText(addressText).width > maxWidth) {
+          while (ctx.measureText(displayText + '...').width > maxWidth && displayText.length > 10) {
+            displayText = displayText.slice(0, -1);
+          }
+          displayText += '...';
+        }
+        
+        ctx.fillText(displayText, padding, yPosition);
+        yPosition += 20;
+      }
+      
+      // Draw coordinates and distance
+      if (overlayData.location) {
+        const coordText = `${overlayData.location.latitude.toFixed(6)}, ${overlayData.location.longitude.toFixed(6)}`;
+        const distanceText = overlayData.distance !== null ? ` (${overlayData.distance}m dari kantor)` : '';
+        
+        ctx.font = '12px Arial';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.fillText(coordText + distanceText, padding, yPosition);
+      }
+    }
+  
     const dataURL = canvas.toDataURL('image/jpeg', 0.8);
     setCapturedPhoto(dataURL);
     return dataURL;

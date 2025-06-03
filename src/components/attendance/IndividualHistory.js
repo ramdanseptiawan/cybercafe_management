@@ -185,68 +185,128 @@ const IndividualHistory = ({ attendanceRecords, currentUser }) => {
           ))
         )}
       </div>
-      {/* Photo Modal */}
+      {/* Photo Modal - Diperbaiki untuk mobile */}
       {selectedRecord && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Detail Absensi</h3>
-              <button
-                onClick={() => setSelectedRecord(null)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                ✕
-              </button>
+          <div className="bg-white rounded-lg w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            {/* Header Modal */}
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-lg">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Detail Absensi</h3>
+                <button
+                  onClick={() => setSelectedRecord(null)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <span className="text-xl text-gray-500 hover:text-gray-700">✕</span>
+                </button>
+              </div>
             </div>
             
-            <div className="space-y-4">
-              <div>
-                <span className="text-gray-600">Tanggal:</span>
-                <span className="ml-2 font-medium">{formatDate(selectedRecord.date)}</span>
+            {/* Content Modal */}
+            <div className="p-6 space-y-6">
+              {/* Tanggal dan Status */}
+              <div className="text-center">
+                <h4 className="text-lg font-medium text-gray-800 mb-2">
+                  {formatDate(selectedRecord.date)}
+                </h4>
+                <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(selectedRecord.status)}`}>
+                  {getStatusText(selectedRecord.status)}
+                </span>
               </div>
               
-              {/* Tampilkan kedua foto di modal */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Foto Section - Responsif untuk mobile */}
+              <div className="space-y-4">
                 {selectedRecord.checkInPhoto && (
-                  <div className="text-center">
-                    <h4 className="text-sm font-medium text-green-600 mb-2">Foto Check-in</h4>
-                    <img
-                      src={selectedRecord.checkInPhoto}
-                      alt="Foto check-in"
-                      className="w-full max-w-xs mx-auto rounded-lg border-2 border-green-200"
-                    />
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <h4 className="text-sm font-medium text-green-700 mb-3 flex items-center gap-2">
+                      <Clock size={16} />
+                      Foto Check-in - {selectedRecord.checkIn}
+                    </h4>
+                    <div className="flex justify-center">
+                      <img
+                        src={selectedRecord.checkInPhoto}
+                        alt="Foto check-in"
+                        className="w-full max-w-sm rounded-lg border-2 border-green-300 shadow-sm"
+                      />
+                    </div>
                   </div>
                 )}
+                
                 {selectedRecord.checkOutPhoto && (
-                  <div className="text-center">
-                    <h4 className="text-sm font-medium text-red-600 mb-2">Foto Check-out</h4>
-                    <img
-                      src={selectedRecord.checkOutPhoto}
-                      alt="Foto check-out"
-                      className="w-full max-w-xs mx-auto rounded-lg border-2 border-red-200"
-                    />
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <h4 className="text-sm font-medium text-red-700 mb-3 flex items-center gap-2">
+                      <Clock size={16} />
+                      Foto Check-out - {selectedRecord.checkOut}
+                    </h4>
+                    <div className="flex justify-center">
+                      <img
+                        src={selectedRecord.checkOutPhoto}
+                        alt="Foto check-out"
+                        className="w-full max-w-sm rounded-lg border-2 border-red-300 shadow-sm"
+                      />
+                    </div>
+                  </div>
+                )}
+                
+                {/* Fallback untuk foto lama */}
+                {!selectedRecord.checkInPhoto && !selectedRecord.checkOutPhoto && selectedRecord.photo && (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <h4 className="text-sm font-medium text-gray-700 mb-3">Foto Absensi</h4>
+                    <div className="flex justify-center">
+                      <img
+                        src={selectedRecord.photo}
+                        alt="Foto absensi"
+                        className="w-full max-w-sm rounded-lg border-2 border-gray-300 shadow-sm"
+                      />
+                    </div>
                   </div>
                 )}
               </div>
               
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-gray-600">Check-in:</span>
-                  <span className="ml-2 font-medium">{selectedRecord.checkIn}</span>
-                </div>
-                <div>
-                  <span className="text-gray-600">Check-out:</span>
-                  <span className="ml-2 font-medium">{selectedRecord.checkOut}</span>
-                </div>
-                <div>
-                  <span className="text-gray-600">Total Jam:</span>
-                  <span className="ml-2 font-medium">{selectedRecord.hours}</span>
-                </div>
-                <div>
-                  <span className="text-gray-600">Lokasi:</span>
-                  <span className="ml-2 font-medium">{selectedRecord.location}</span>
+              {/* Detail Information */}
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-gray-700 mb-3">Informasi Detail</h4>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                    <span className="text-gray-600 flex items-center gap-2">
+                      <Clock size={14} />
+                      Check-in:
+                    </span>
+                    <span className="font-medium text-green-600">{selectedRecord.checkIn}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                    <span className="text-gray-600 flex items-center gap-2">
+                      <Clock size={14} />
+                      Check-out:
+                    </span>
+                    <span className="font-medium text-red-600">{selectedRecord.checkOut}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                    <span className="text-gray-600 flex items-center gap-2">
+                      <Clock size={14} />
+                      Total Jam:
+                    </span>
+                    <span className="font-medium text-blue-600">{selectedRecord.hours}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-gray-600 flex items-center gap-2">
+                      <MapPin size={14} />
+                      Lokasi:
+                    </span>
+                    <span className="font-medium text-gray-800">{selectedRecord.location}</span>
+                  </div>
                 </div>
               </div>
+            </div>
+            
+            {/* Footer Modal */}
+            <div className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4 rounded-b-lg">
+              <button
+                onClick={() => setSelectedRecord(null)}
+                className="w-full bg-gray-600 text-white py-3 px-4 rounded-lg hover:bg-gray-700 transition-colors font-medium"
+              >
+                Tutup
+              </button>
             </div>
           </div>
         </div>
