@@ -1,14 +1,10 @@
 package handlers
 
 import (
-	"fmt"
-	"io"                    // ✅ TAMBAHKAN: untuk io.Copy
-	"mime/multipart"        // ✅ TAMBAHKAN: untuk multipart.FileHeader
-	"net/http"              // ✅ TAMBAHKAN: untuk http.DetectContentType
+	"fmt"                   // ✅ TAMBAHKAN: untuk io.Copy           // ✅ TAMBAHKAN: untuk http.DetectContentType
 	"os"
 	"path/filepath"
-	"strconv"
-	"strings"               // ✅ TAMBAHKAN: untuk strings.ReplaceAll
+	"strconv"             // ✅ TAMBAHKAN: untuk strings.ReplaceAll
 	"time"
 	"log"
 	"cybercafe-backend/internal/config"
@@ -370,94 +366,3 @@ func (h *AttendanceHandler) UpdateAttendance(c *fiber.Ctx) error {
 	return utils.SuccessResponse(c, "Attendance record updated successfully", attendance)
 }
 
-
-// Tambahkan fungsi validasi foto yang lebih robust
-func validateAndSavePhoto(file *multipart.FileHeader, uploadDir string) (string, error) {
-    // Validasi ukuran file
-    if file.Size == 0 {
-        return "", fmt.Errorf("file foto kosong")
-    }
-    
-    if file.Size < 1000 { // Kurang dari 1KB kemungkinan corrupt
-        return "", fmt.Errorf("file foto terlalu kecil atau rusak")
-    }
-    
-    if file.Size > 10*1024*1024 { // Maksimal 10MB
-        return "", fmt.Errorf("file foto terlalu besar, maksimal 10MB")
-    }
-
-    // Buka file untuk validasi header
-    src, err := file.Open()
-    if err != nil {
-        return "", fmt.Errorf("gagal membuka file: %v", err)
-    }
-    defer src.Close()
-
-    // Baca header untuk deteksi tipe file
-    buffer := make([]byte, 512)
-    n, err := src.Read(buffer)
-    if err != nil {
-        return "", fmt.Errorf("gagal membaca file: %v", err)
-    }
-
-    contentType := http.DetectContentType(buffer[:n])
-    allowedTypes := map[string]bool{
-        "image/jpeg": true,
-        "image/jpg":  true,
-        "image/png":  true,
-    }
-
-    if !allowedTypes[contentType] {
-        return "", fmt.Errorf("tipe file tidak didukung: %s", contentType)
-    }
-
-    // Reset file pointer ke awal
-    src.Seek(0, 0)
-
-    // Buat direktori jika belum ada
-    if err := os.MkdirAll(uploadDir, 0755); err != nil {
-        return "", fmt.Errorf("gagal membuat direktori: %v", err)
-    }
-
-    // Generate nama file unik
-    ext := filepath.Ext(file.Filename)
-    if ext == "" {
-        ext = ".jpg" // Default extension
-    }
-    
-    filename := fmt.Sprintf("%d_%s%s", 
-        time.Now().Unix(), 
-        strings.ReplaceAll(uuid.New().String(), "-", "")[:8], 
-        ext)
-    
-    fullPath := filepath.Join(uploadDir, filename)
-
-    // Buat file tujuan
-    dst, err := os.Create(fullPath)
-    if err != nil {
-        return "", fmt.Errorf("gagal membuat file: %v", err)
-    }
-    defer dst.Close()
-
-    // Copy file dengan buffer
-    written, err := io.Copy(dst, src)
-    if err != nil {
-        os.Remove(fullPath) // Hapus file jika copy gagal
-        return "", fmt.Errorf("gagal menyalin file: %v", err)
-    }
-
-    // Validasi ukuran file yang ditulis
-    if written != file.Size {
-        os.Remove(fullPath)
-        return "", fmt.Errorf("ukuran file tidak sesuai: expected %d, got %d", file.Size, written)
-    }
-
-    // Sync untuk memastikan data tertulis ke disk
-    if err := dst.Sync(); err != nil {
-        os.Remove(fullPath)
-        return "", fmt.Errorf("gagal sync file: %v", err)
-    }
-
-    log.Printf("✅ Photo saved successfully: %s (size: %d bytes)", filename, written)
-    return fmt.Sprintf("/uploads/attendance/%s", filename), nil
-}
