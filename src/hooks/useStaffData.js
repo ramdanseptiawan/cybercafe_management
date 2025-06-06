@@ -1,91 +1,158 @@
-import { useState } from 'react';
-import { useAuditLogs } from './useAuditLogs';
+import { useState, useEffect } from 'react';
+import { staffService } from '../services/staffService';
 
 export const useStaffData = () => {
-  const { logAction } = useAuditLogs();
+  const [staff, setStaff] = useState([]);
+  const [roles, setRoles] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   
-  const [staff, setStaff] = useState([
-    { id: 1, username: 'admin', name: 'Admin User', role: 'admin', email: 'admin@cybercafe.com', phone: '081234567890', active: true },
-    { id: 2, username: 'kitchen1', name: 'Kitchen Staff', role: 'kitchen', email: 'kitchen@cybercafe.com', phone: '081234567891', active: true },
-    { id: 3, username: 'cashier1', name: 'Cashier Staff', role: 'cashier', email: 'cashier@cybercafe.com', phone: '081234567892', active: true }
-  ]);
-  
-  const [roles, setRoles] = useState([
-    { id: 'admin', name: 'Administrator', permissions: ['all'] },
-    { id: 'manager', name: 'Manager', permissions: ['dashboard', 'stock', 'menu', 'transactions', 'reports', 'computers', 'sessions', 'customers', 'kitchen'] },
-    { id: 'cashier', name: 'Cashier', permissions: ['transactions', 'sessions', 'customers'] },
-    { id: 'kitchen', name: 'Kitchen Staff', permissions: ['kitchen', 'stock'] },
-    { id: 'staff', name: 'General Staff', permissions: ['sessions', 'customers'] }
-  ]);
-
-  const addStaff = (newStaff) => {
-    const processedStaff = {
-      ...newStaff,
-      id: Date.now(),
-      active: newStaff.active !== undefined ? newStaff.active : true
-    };
-    setStaff([...staff, processedStaff]);
-    logAction('create', `Added new staff member: ${processedStaff.name}`);
-  };
-  
-  const updateStaff = (updatedStaff) => {
-    setStaff(staff.map(s => s.id === updatedStaff.id ? updatedStaff : s));
-    logAction('update', `Updated staff member: ${updatedStaff.name}`);
-  };
-  
-  const deleteStaff = (id) => {
-    try {
-      const staffToDelete = staff.find(s => s.id === id);
-      if (!staffToDelete) {
-        console.error('Staff member not found');
-        return;
+  // Load initial data
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        // Fetch staff with role information
+        const staffResponse = await staffService.getAllStaff();
+        if (staffResponse.success) {
+          setStaff(staffResponse.data || []); // Ubah dari staffResponse.data.users ke staffResponse.data
+        } else {
+          setError(staffResponse.message || 'Failed to load staff');
+        }
+        
+        // Fetch roles
+        const rolesResponse = await staffService.getAllRoles();
+        if (rolesResponse.success) {
+          setRoles(rolesResponse.data || []); // Ubah dari rolesResponse.data.roles ke rolesResponse.data
+        } else {
+          setError(rolesResponse.message || 'Failed to load roles');
+        }
+      } catch (err) {
+        setError('Failed to load staff data');
+        console.error('Error loading staff data:', err);
+      } finally {
+        setLoading(false);
       }
-      setStaff(staff.filter(s => s.id !== id));
-      logAction('delete', `Deleted staff member: ${staffToDelete.name}`);
+    };
+    
+    fetchData();
+  }, []);
+
+  const addStaff = async (newStaff) => {
+    try {
+      setLoading(true);
+      const response = await staffService.createStaff(newStaff);
+      if (response.success) {
+        setStaff(prev => [...prev, response.data.user]);
+        return { success: true };
+      }
+      return { success: false, message: response.message };
     } catch (error) {
-      console.error('Error deleting staff:', error);
+      console.error('Error adding staff:', error);
+      return { success: false, message: 'Failed to add staff member' };
+    } finally {
+      setLoading(false);
     }
   };
 
-  const addRole = (newRole) => {
-    const processedRole = {
-      ...newRole,
-      id: Date.now(),
-      permissions: newRole.permissions || []
-    };
-    setRoles([...roles, processedRole]);
-    logAction('create', `Added new role: ${processedRole.name}`);
-  };
-  
-  const updateRole = (updatedRole) => {
-    setRoles(roles.map(r => r.id === updatedRole.id ? updatedRole : r));
-    logAction('update', `Updated role: ${updatedRole.name}`);
-  };
-  
-  const deleteRole = (id) => {
+  const updateStaff = async (id, updatedStaff) => {
     try {
-      const roleToDelete = roles.find(r => r.id === id);
-      if (!roleToDelete) {
-        console.error('Role not found');
-        return;
+      setLoading(true);
+      const response = await staffService.updateStaff(id, updatedStaff);
+      if (response.success) {
+        setStaff(prev => prev.map(s => s.id === id ? response.data.user : s));
+        return { success: true };
       }
-      setRoles(roles.filter(r => r.id !== id));
-      logAction('delete', `Deleted role: ${roleToDelete.name}`);
+      return { success: false, message: response.message };
+    } catch (error) {
+      console.error('Error updating staff:', error);
+      return { success: false, message: 'Failed to update staff member' };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteStaff = async (id) => {
+    try {
+      setLoading(true);
+      const response = await staffService.deleteStaff(id);
+      if (response.success) {
+        setStaff(prev => prev.filter(s => s.id !== id));
+        return { success: true };
+      }
+      return { success: false, message: response.message };
+    } catch (error) {
+      console.error('Error deleting staff:', error);
+      return { success: false, message: 'Failed to delete staff member' };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const addRole = async (newRole) => {
+    try {
+      setLoading(true);
+      const response = await staffService.createRole(newRole);
+      if (response.success) {
+        setRoles(prev => [...prev, response.data.role]);
+        return { success: true };
+      }
+      return { success: false, message: response.message };
+    } catch (error) {
+      console.error('Error adding role:', error);
+      return { success: false, message: 'Failed to add role' };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateRole = async (id, updatedRole) => {
+    try {
+      setLoading(true);
+      const response = await staffService.updateRole(id, updatedRole);
+      if (response.success) {
+        setRoles(prev => prev.map(r => r.id === id ? response.data.role : r));
+        return { success: true };
+      }
+      return { success: false, message: response.message };
+    } catch (error) {
+      console.error('Error updating role:', error);
+      return { success: false, message: 'Failed to update role' };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteRole = async (id) => {
+    try {
+      setLoading(true);
+      const response = await staffService.deleteRole(id);
+      if (response.success) {
+        setRoles(prev => prev.filter(r => r.id !== id));
+        return { success: true };
+      }
+      return { success: false, message: response.message };
     } catch (error) {
       console.error('Error deleting role:', error);
+      return { success: false, message: 'Failed to delete role' };
+    } finally {
+      setLoading(false);
     }
   };
 
   return {
     staff,
     roles,
-    setStaff,
-    setRoles,
+    loading,
+    error,
     addStaff,
     updateStaff,
     deleteStaff,
     addRole,
     updateRole,
-    deleteRole
+    deleteRole,
+    setStaff,
+    setRoles
   };
 };

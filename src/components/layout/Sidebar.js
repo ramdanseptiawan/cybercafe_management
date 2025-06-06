@@ -5,7 +5,7 @@ const Sidebar = ({ user, logout, isAdmin, activeTab, setActiveTab, sidebarCollap
   // Debug info
   console.log('Sidebar Debug:', { user, isAdmin, userRole: user?.role });
   
-  const userRole = user?.role;
+  const userRole = user?.role?.name; // Mengambil nama role dari object role
   
   return (
     <div className={`${sidebarCollapsed ? 'w-16' : 'w-64'} bg-gray-800 text-white h-full flex-shrink-0 flex flex-col transition-all duration-300`}>
@@ -239,7 +239,7 @@ const Sidebar = ({ user, logout, isAdmin, activeTab, setActiveTab, sidebarCollap
         {!sidebarCollapsed && (
           <div className="mb-3">
             <p className="text-sm font-medium">{user?.name || user?.username}</p>
-            <p className="text-xs text-gray-400 capitalize">{user?.role}</p>
+            <p className="text-xs text-gray-400 capitalize">{user?.role?.name}</p>
           </div>
         )}
         <button 

@@ -1,23 +1,64 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import api from '../services/api';
 
 export const useAuditLogs = () => {
-  const [auditLogs, setAuditLogs] = useState([
-    { id: 1, user: 'admin', action: 'login', details: 'User logged in', timestamp: '2024-01-15T08:30:00.000Z', ip: '192.168.1.100' },
-    { id: 2, user: 'admin', action: 'create', details: 'Created new menu item: Espresso', timestamp: '2024-01-15T09:15:00.000Z', ip: '192.168.1.100' },
-    { id: 3, user: 'kitchen1', action: 'update', details: 'Updated order status to completed', timestamp: '2024-01-15T10:45:00.000Z', ip: '192.168.1.101' }
-  ]);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0
+  });
 
-  const logAction = (action, details, user = 'system') => {
-    const newLog = {
-      id: Date.now(),
-      user,
-      action,
-      details,
-      timestamp: new Date().toISOString(),
-      ip: '192.168.1.100' // In a real app, you would get the actual IP
-    };
-    setAuditLogs([newLog, ...auditLogs]);
+  const fetchAuditLogs = async (page = 1, limit = 10, filters = {}) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const params = {
+        page,
+        limit,
+        ...filters
+      };
+      
+      const response = await api.get('/audit', { params });
+      
+      if (response.data.success) {
+        setAuditLogs(response.data.data);
+        setPagination(response.data.meta);
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to fetch audit logs');
+      console.error('Error fetching audit logs:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  return { auditLogs, logAction };
+  const logAction = async (action, resource, details) => {
+    // This function is not needed as the backend middleware
+    // automatically logs actions, but we can keep it for manual logging
+    try {
+      // Manual logging could be implemented if needed
+      // For now, just refresh the logs
+      await fetchAuditLogs(pagination.page, pagination.limit);
+    } catch (err) {
+      console.error('Error logging action:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchAuditLogs();
+  }, []);
+
+  return { 
+    auditLogs, 
+    loading, 
+    error, 
+    pagination,
+    fetchAuditLogs,
+    logAction 
+  };
 };

@@ -17,18 +17,27 @@ import EmployeeDashboard from '../dashboard/EmployeeDashboard';
 
 const TabContent = ({ activeTab, settingsTab, setSettingsTab, state, handlers, isAdmin, modals }) => {
   const { user } = useAuth();
-  const userRole = user?.role;
+  const userRole = user?.role?.name; // Mengambil nama role dari object role
+  
   const hasAccess = (requiredPermission) => {
     if (!user) return false;
     
     // Admin has access to everything
     if (userRole === 'admin') return true;
     
-    // Check specific permissions
-    if (user.permissions?.includes('all')) return true;
-    if (user.permissions?.includes(requiredPermission)) return true;
-    
-    return false;
+    // Check specific role-based permissions
+    switch (requiredPermission) {
+      case 'admin':
+        return userRole === 'admin';
+      case 'viewer':
+        return userRole === 'viewer' || userRole === 'admin';
+      case 'employee':
+        return userRole === 'employee' || userRole === 'admin';
+      case 'attendance':
+        return userRole === 'admin' || userRole === 'employee';
+      default:
+        return false;
+    }
   };
   
   // Debug info
@@ -126,7 +135,7 @@ const TabContent = ({ activeTab, settingsTab, setSettingsTab, state, handlers, i
             activeSessions={activeSessions}
             computers={computers}
             setActiveTab={handlers.setActiveTab}
-            todayAttendance={null} // You can pass actual attendance data here
+            todayAttendance={null}
           />
         )
       )}
@@ -246,13 +255,13 @@ const TabContent = ({ activeTab, settingsTab, setSettingsTab, state, handlers, i
       
       {/* EMPLOYEE ONLY SECTIONS */}
       {activeTab === 'individual-attendance' && (
-        (userRole === 'employee' || hasAccess('attendance')) ? (
+        hasAccess('employee') ? (
           <IndividualAttendance 
             currentUser={{
               id: user?.id || 'EMP001',
               name: user?.name || 'Employee',
               department: user?.department || 'General',
-              role: 'employee'
+              role: userRole
             }}
           />
         ) : <AccessDenied />
@@ -326,15 +335,18 @@ const TabContent = ({ activeTab, settingsTab, setSettingsTab, state, handlers, i
                   </div>
                 )}
                 
-                {settingsTab === 'staff' && (
-                  <StaffManagement 
-                    staff={staff}
-                    roles={roles}
-                    addStaff={addStaff}
-                    editStaff={editStaff}
-                    deleteStaff={deleteStaff}
-                    isAdmin={true}
-                  />
+                {settingsTab === 'staff' && hasAccess('admin') && (
+                  <StaffManagement />
+                )}
+                
+                {settingsTab === 'staff' && !hasAccess('admin') && (
+                  <div className="text-center py-8">
+                    <div className="text-gray-500">
+                      <Shield className="mx-auto h-12 w-12 mb-4" />
+                      <p>You don't have permission to access Staff Management.</p>
+                      <p className="text-sm">Only administrators can manage staff members.</p>
+                    </div>
+                  </div>
                 )}
                 
                 {settingsTab === 'audit' && (

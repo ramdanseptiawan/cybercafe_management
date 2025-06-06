@@ -1,11 +1,13 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MapPin, Camera, Clock, AlertCircle, CheckCircle, Navigation, Wifi } from 'lucide-react';
 import { useGeolocation } from '../../hooks/useGeolocation';
 import CameraCapture from './CameraCapture';
+import { attendanceService } from '../../services/attendanceService';
+import { locationService } from '../../services/locationService';
 
 const AttendanceCheckIn = ({ employee, onSubmit, allowedLocations = [] }) => {
-  const [step, setStep] = useState('location'); // location -> camera -> confirm
+  const [step, setStep] = useState('location');
   const [attendanceData, setAttendanceData] = useState({
     photo: null,
     location: null,
@@ -16,6 +18,7 @@ const AttendanceCheckIn = ({ employee, onSubmit, allowedLocations = [] }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [locationValidation, setLocationValidation] = useState(null);
+  const [locations, setLocations] = useState([]);
 
   const { 
     location, 
@@ -25,6 +28,22 @@ const AttendanceCheckIn = ({ employee, onSubmit, allowedLocations = [] }) => {
     validateMultipleLocations 
   } = useGeolocation();
 
+  // Fetch allowed locations from API
+  useEffect(() => {
+    const fetchLocations = async () => {
+      try {
+        const response = await locationService.getAllLocations({ is_active: true });
+        if (response.success) {
+          setLocations(response.data || []);
+        }
+      } catch (err) {
+        console.error('Error fetching locations:', err);
+      }
+    };
+    
+    fetchLocations();
+  }, []);
+
   const handleLocationCapture = async () => {
     setLoading(true);
     setError(null);
@@ -33,24 +52,53 @@ const AttendanceCheckIn = ({ employee, onSubmit, allowedLocations = [] }) => {
     try {
       const locationData = await getCurrentLocation();
       
-      // Validate location with improved logic
-      const validation = validateMultipleLocations(allowedLocations);
-      setLocationValidation(validation);
+      // DEBUG: Log koordinat user
+      console.log('User coordinates:', {
+          latitude: locationData.latitude,
+          longitude: locationData.longitude,
+          accuracy: locationData.accuracy
+      });
       
-      // Perbaikan: Jika jarak sangat dekat (< 5m) atau tidak ada pembatasan lokasi, langsung valid
-      if (validation.isValid || validation.distance < 5 || allowedLocations.length === 0) {
+      // Validate location with API
+      const validationResponse = await locationService.validateLocation({
+        latitude: locationData.latitude,
+        longitude: locationData.longitude,
+        accuracy: locationData.accuracy
+      });
+      
+      // DEBUG: Log response dari server
+      console.log('Validation response:', validationResponse);
+      
+      if (validationResponse.success && validationResponse.data.is_valid) {
+        setLocationValidation({
+          isValid: true,
+          nearestLocation: validationResponse.data.location,
+          distance: validationResponse.data.location.distance,
+          effectiveRadius: validationResponse.data.rules.max_distance
+        });
+        
         setAttendanceData(prev => ({
           ...prev,
-          location: locationData,
+          location: {
+            ...locationData,
+            locationId: validationResponse.data.location.id
+          },
           timestamp: new Date().toISOString()
         }));
         
         setStep('camera');
         setShowCamera(true);
       } else {
-        const nearestDistance = Math.round(validation.distance);
-        const nearestLocationName = validation.nearestLocation?.name || 'authorized location';
-        const effectiveRadius = validation.effectiveRadius || 100;
+        const nearestDistance = Math.round(validationResponse.data.location?.distance || 0);
+        const nearestLocationName = validationResponse.data.location?.name || 'authorized location';
+        const effectiveRadius = validationResponse.data.rules?.max_distance || 100;
+        
+        setLocationValidation({
+          isValid: false,
+          nearestLocation: validationResponse.data.location,
+          distance: nearestDistance,
+          effectiveRadius
+        });
         
         setError(
           `You are ${nearestDistance}m away from ${nearestLocationName}. ` +
@@ -59,7 +107,7 @@ const AttendanceCheckIn = ({ employee, onSubmit, allowedLocations = [] }) => {
         );
       }
     } catch (err) {
-      setError(err);
+      setError(err.response?.data?.message || 'Failed to validate location');
     } finally {
       setLoading(false);
     }
@@ -79,14 +127,41 @@ const AttendanceCheckIn = ({ employee, onSubmit, allowedLocations = [] }) => {
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      await onSubmit({
-        ...attendanceData,
-        employeeId: employee.id,
-        employeeName: employee.name,
-        locationValidation: locationValidation
-      });
+      // Create FormData for file upload
+      const formData = new FormData();
+      
+      // Convert base64 to blob
+      const photoBlob = await fetch(attendanceData.photo).then(r => r.blob());
+      formData.append('photo', photoBlob, 'check-in.jpg');
+      
+      // Add location data
+      formData.append('latitude', attendanceData.location.latitude);
+      formData.append('longitude', attendanceData.location.longitude);
+      formData.append('distance', locationValidation.distance);
+      formData.append('isValid', locationValidation.isValid);
+      formData.append('address', attendanceData.location.address);
+      
+      // Add notes if any
+      if (attendanceData.notes) {
+        formData.append('notes', attendanceData.notes);
+      }
+      
+      const response = await attendanceService.checkIn(formData);
+      
+      if (response.success) {
+        onSubmit({
+          ...attendanceData,
+          id: response.data.id,
+          employeeId: employee.id,
+          employeeName: employee.name,
+          locationValidation: locationValidation,
+          serverResponse: response.data
+        });
+      } else {
+        throw new Error(response.message || 'Failed to submit attendance');
+      }
     } catch (err) {
-      setError('Failed to submit attendance');
+      setError(err.response?.data?.message || 'Failed to submit attendance');
     } finally {
       setLoading(false);
     }

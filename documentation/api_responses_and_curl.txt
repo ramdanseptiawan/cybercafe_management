@@ -1,0 +1,1256 @@
+# CYBERCAFE MANAGEMENT SYSTEM - API RESPONSES & CURL COMMANDS
+# Base URL: http://localhost:8080
+
+## 1. AUTHENTICATION APIs
+
+### Login
+POST /api/auth/login
+
+CURL:
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "admin",
+    "password": "admin123"
+  }'
+
+Response (Success):
+{
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "user": {
+      "id": "usr_123456",
+      "username": "admin",
+      "email": "admin@company.com",
+      "name": "Administrator",
+      "role": {
+        "id": 1,
+        "name": "admin",
+        "display_name": "Administrator"
+      }
+    },
+    "expires_in": 86400
+  }
+}
+
+Response (Error):
+{
+  "success": false,
+  "message": "Invalid credentials",
+  "error": "INVALID_CREDENTIALS"
+}
+
+### Get Profile
+GET /api/auth/me
+
+CURL:
+curl -X GET http://localhost:8080/api/auth/me \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+Response:
+{
+  "success": true,
+  "data": {
+    "id": "usr_123456",
+    "username": "admin",
+    "email": "admin@company.com",
+    "name": "Administrator",
+    "phone": "+62812345678",
+    "address": "Jakarta, Indonesia",
+    "role": {
+      "id": 1,
+      "name": "admin",
+      "display_name": "Administrator"
+    },
+    "active": true,
+    "created_at": "2025-01-15T08:00:00Z"
+  }
+}
+
+### Logout
+POST /api/auth/logout
+
+CURL:
+curl -X POST http://localhost:8080/api/auth/logout \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+Response:
+{
+  "success": true,
+  "message": "Logout successful"
+}
+
+## 2. ROLE MANAGEMENT APIs
+
+### Get All Roles
+GET /api/roles
+
+CURL:
+curl -X GET "http://localhost:8080/api/roles?is_active=true&search=admin" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+Response:
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "name": "admin",
+      "display_name": "Administrator",
+      "description": "Full system access",
+      "permissions": ["users.read", "users.write", "staff.read", "staff.write"],
+      "is_active": true,
+      "created_at": "2025-01-15T08:00:00Z",
+      "updated_at": "2025-01-15T08:00:00Z"
+    },
+    {
+      "id": 2,
+      "name": "staff",
+      "display_name": "Staff",
+      "description": "Limited access for staff",
+      "permissions": ["attendance.read", "attendance.write"],
+      "is_active": true,
+      "created_at": "2025-01-15T08:00:00Z",
+      "updated_at": "2025-01-15T08:00:00Z"
+    }
+  ]
+}
+
+### Create Role
+POST /api/roles
+
+CURL:
+curl -X POST http://localhost:8080/api/roles \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "supervisor",
+    "display_name": "Supervisor",
+    "description": "Supervisor access level",
+    "permissions": ["staff.read", "attendance.read", "attendance.write"]
+  }'
+
+Response:
+{
+  "success": true,
+  "message": "Role created successfully",
+  "data": {
+    "id": 3,
+    "name": "supervisor",
+    "display_name": "Supervisor",
+    "description": "Supervisor access level",
+    "permissions": ["staff.read", "attendance.read", "attendance.write"],
+    "is_active": true,
+    "created_at": "2025-01-15T10:00:00Z"
+  }
+}
+
+### Get Role by ID
+GET /api/roles/{id}
+
+CURL:
+curl -X GET http://localhost:8080/api/roles/1 \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+Response:
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "name": "admin",
+    "display_name": "Administrator",
+    "description": "Full system access",
+    "permissions": ["users.read", "users.write", "staff.read", "staff.write"],
+    "is_active": true,
+    "created_at": "2025-01-15T08:00:00Z",
+    "updated_at": "2025-01-15T08:00:00Z"
+  }
+}
+
+### Update Role
+PUT /api/roles/{id}
+
+CURL:
+curl -X PUT http://localhost:8080/api/roles/3 \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "display_name": "Senior Supervisor",
+    "description": "Senior supervisor with extended access",
+    "permissions": ["staff.read", "staff.write", "attendance.read", "attendance.write"]
+  }'
+
+Response:
+{
+  "success": true,
+  "message": "Role updated successfully",
+  "data": {
+    "id": 3,
+    "name": "supervisor",
+    "display_name": "Senior Supervisor",
+    "description": "Senior supervisor with extended access",
+    "permissions": ["staff.read", "staff.write", "attendance.read", "attendance.write"],
+    "is_active": true,
+    "updated_at": "2025-01-15T11:00:00Z"
+  }
+}
+
+### Delete Role
+DELETE /api/roles/{id}
+
+CURL:
+curl -X DELETE http://localhost:8080/api/roles/3 \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+Response:
+{
+  "success": true,
+  "message": "Role deleted successfully"
+}
+
+## 3. STAFF MANAGEMENT APIs
+
+### Get All Staff
+GET /api/staff
+
+CURL:
+curl -X GET "http://localhost:8080/api/staff?page=1&limit=20&search=john&department=IT&status=active" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+Response:
+{
+  "success": true,
+  "data": {
+    "staff": [
+      {
+        "id": "emp_123456",
+        "employee_id": "EMP001",
+        "full_name": "John Doe",
+        "email": "john.doe@company.com",
+        "phone": "+62812345678",
+        "position": "Software Developer",
+        "department": "IT",
+        "hire_date": "2024-01-15",
+        "salary": 10000000,
+        "address": "Jl. Kebon Jeruk No. 123, Jakarta",
+        "status": "active",
+        "emergency_contact": {
+          "name": "Jane Doe",
+          "relationship": "Wife",
+          "phone": "+62812345679"
+        },
+        "user_id": "usr_123456",
+        "role": {
+          "id": 2,
+          "name": "staff",
+          "display_name": "Staff"
+        },
+        "created_at": "2024-01-15T08:00:00Z",
+        "updated_at": "2024-01-15T08:00:00Z"
+      }
+    ],
+    "pagination": {
+      "current_page": 1,
+      "total_pages": 5,
+      "total_records": 100,
+      "per_page": 20
+    }
+  }
+}
+
+### Create Staff
+POST /api/staff
+
+CURL:
+curl -X POST http://localhost:8080/api/staff \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "employee_id": "EMP002",
+    "full_name": "Jane Smith",
+    "email": "jane.smith@company.com",
+    "phone": "+62812345679",
+    "position": "UI/UX Designer",
+    "department": "Design",
+    "hire_date": "2025-01-15",
+    "salary": 8000000,
+    "address": "Jl. Kebon Jeruk No. 456, Jakarta",
+    "emergency_contact": {
+      "name": "John Smith",
+      "relationship": "Husband",
+      "phone": "+62812345680"
+    },
+    "role_id": 2
+  }'
+
+Response:
+{
+  "success": true,
+  "message": "Staff created successfully",
+  "data": {
+    "id": "emp_789012",
+    "employee_id": "EMP002",
+    "full_name": "Jane Smith",
+    "email": "jane.smith@company.com",
+    "phone": "+62812345679",
+    "position": "UI/UX Designer",
+    "department": "Design",
+    "hire_date": "2025-01-15",
+    "salary": 8000000,
+    "address": "Jl. Kebon Jeruk No. 456, Jakarta",
+    "status": "active",
+    "emergency_contact": {
+      "name": "John Smith",
+      "relationship": "Husband",
+      "phone": "+62812345680"
+    },
+    "user_id": "usr_789012",
+    "role": {
+      "id": 2,
+      "name": "staff",
+      "display_name": "Staff"
+    },
+    "created_at": "2025-01-15T10:00:00Z"
+  }
+}
+
+### Get Staff by ID
+GET /api/staff/{id}
+
+CURL:
+curl -X GET http://localhost:8080/api/staff/emp_123456 \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+Response:
+{
+  "success": true,
+  "data": {
+    "id": "emp_123456",
+    "employee_id": "EMP001",
+    "full_name": "John Doe",
+    "email": "john.doe@company.com",
+    "phone": "+62812345678",
+    "position": "Software Developer",
+    "department": "IT",
+    "hire_date": "2024-01-15",
+    "salary": 10000000,
+    "address": "Jl. Kebon Jeruk No. 123, Jakarta",
+    "status": "active",
+    "emergency_contact": {
+      "name": "Jane Doe",
+      "relationship": "Wife",
+      "phone": "+62812345679"
+    },
+    "user_id": "usr_123456",
+    "role": {
+      "id": 2,
+      "name": "staff",
+      "display_name": "Staff"
+    },
+    "created_at": "2024-01-15T08:00:00Z",
+    "updated_at": "2024-01-15T08:00:00Z"
+  }
+}
+
+### Update Staff
+PUT /api/staff/{id}
+
+CURL:
+curl -X PUT http://localhost:8080/api/staff/emp_123456 \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "position": "Senior Software Developer",
+    "salary": 12000000,
+    "phone": "+62812345999"
+  }'
+
+Response:
+{
+  "success": true,
+  "message": "Staff updated successfully",
+  "data": {
+    "id": "emp_123456",
+    "employee_id": "EMP001",
+    "full_name": "John Doe",
+    "position": "Senior Software Developer",
+    "salary": 12000000,
+    "phone": "+62812345999",
+    "updated_at": "2025-01-15T11:00:00Z"
+  }
+}
+
+### Delete Staff
+DELETE /api/staff/{id}
+
+CURL:
+curl -X DELETE http://localhost:8080/api/staff/emp_123456 \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+Response:
+{
+  "success": true,
+  "message": "Staff deleted successfully"
+}
+
+## 4. LOCATION MANAGEMENT APIs
+
+### Get All Locations
+GET /api/locations
+
+CURL:
+curl -X GET "http://localhost:8080/api/locations?type=office&is_active=true&search=main" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+Response:
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "name": "Main Office",
+      "address": "Jl. Sudirman No. 123, Jakarta",
+      "latitude": -6.2088,
+      "longitude": 106.8456,
+      "radius": 100,
+      "type": "office",
+      "working_hours": {
+        "start": "08:00",
+        "end": "17:00",
+        "days": [1, 2, 3, 4, 5]
+      },
+      "timezone": "Asia/Jakarta",
+      "is_active": true,
+      "created_at": "2025-01-15T08:00:00Z",
+      "updated_at": "2025-01-15T08:00:00Z"
+    },
+    {
+      "id": 2,
+      "name": "Branch Office Surabaya",
+      "address": "Jl. Pemuda No. 456, Surabaya",
+      "latitude": -7.2575,
+      "longitude": 112.7521,
+      "radius": 150,
+      "type": "branch",
+      "working_hours": {
+        "start": "08:00",
+        "end": "17:00",
+        "days": [1, 2, 3, 4, 5]
+      },
+      "timezone": "Asia/Jakarta",
+      "is_active": true,
+      "created_at": "2025-01-15T08:00:00Z",
+      "updated_at": "2025-01-15T08:00:00Z"
+    }
+  ]
+}
+
+### Create Location
+POST /api/locations
+
+CURL:
+curl -X POST http://localhost:8080/api/locations \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Branch Office Bandung",
+    "address": "Jl. Asia Afrika No. 789, Bandung",
+    "latitude": -6.9175,
+    "longitude": 107.6191,
+    "radius": 120,
+    "type": "branch",
+    "working_hours": {
+      "start": "08:00",
+      "end": "17:00",
+      "days": [1, 2, 3, 4, 5]
+    }
+  }'
+
+Response:
+{
+  "success": true,
+  "message": "Location created successfully",
+  "data": {
+    "id": 3,
+    "name": "Branch Office Bandung",
+    "address": "Jl. Asia Afrika No. 789, Bandung",
+    "latitude": -6.9175,
+    "longitude": 107.6191,
+    "radius": 120,
+    "type": "branch",
+    "working_hours": {
+      "start": "08:00",
+      "end": "17:00",
+      "days": [1, 2, 3, 4, 5]
+    },
+    "timezone": "Asia/Jakarta",
+    "is_active": true,
+    "created_at": "2025-01-15T10:00:00Z"
+  }
+}
+
+### Get Nearby Locations
+GET /api/locations/nearby
+
+CURL:
+curl -X GET "http://localhost:8080/api/locations/nearby?latitude=-6.2088&longitude=106.8456&radius=1000" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+Response:
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "name": "Main Office",
+      "distance": 45.5,
+      "is_within_radius": true,
+      "latitude": -6.2088,
+      "longitude": 106.8456,
+      "radius": 100,
+      "working_hours": {
+        "start": "08:00",
+        "end": "17:00"
+      }
+    }
+  ]
+}
+
+### Validate Location
+POST /api/locations/validate
+
+CURL:
+curl -X POST http://localhost:8080/api/locations/validate \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "latitude": -6.2088,
+    "longitude": 106.8456,
+    "accuracy": 10
+  }'
+
+Response:
+{
+  "success": true,
+  "data": {
+    "is_valid": true,
+    "location": {
+      "id": 1,
+      "name": "Main Office",
+      "distance": 45.5
+    },
+    "rules": {
+      "max_distance": 100,
+      "require_photo": true,
+      "working_hours": {
+        "start": "08:00",
+        "end": "17:00"
+      }
+    }
+  }
+}
+
+### Get Location by ID
+GET /api/locations/{id}
+
+CURL:
+curl -X GET http://localhost:8080/api/locations/1 \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+Response:
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "name": "Main Office",
+    "address": "Jl. Sudirman No. 123, Jakarta",
+    "latitude": -6.2088,
+    "longitude": 106.8456,
+    "radius": 100,
+    "type": "office",
+    "working_hours": {
+      "start": "08:00",
+      "end": "17:00",
+      "days": [1, 2, 3, 4, 5]
+    },
+    "timezone": "Asia/Jakarta",
+    "is_active": true,
+    "created_at": "2025-01-15T08:00:00Z",
+    "updated_at": "2025-01-15T08:00:00Z"
+  }
+}
+
+### Update Location
+PUT /api/locations/{id}
+
+CURL:
+curl -X PUT http://localhost:8080/api/locations/1 \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Main Office - Updated",
+    "radius": 150,
+    "working_hours": {
+      "start": "07:30",
+      "end": "17:30",
+      "days": [1, 2, 3, 4, 5]
+    }
+  }'
+
+Response:
+{
+  "success": true,
+  "message": "Location updated successfully",
+  "data": {
+    "id": 1,
+    "name": "Main Office - Updated",
+    "radius": 150,
+    "working_hours": {
+      "start": "07:30",
+      "end": "17:30",
+      "days": [1, 2, 3, 4, 5]
+    },
+    "updated_at": "2025-01-15T11:00:00Z"
+  }
+}
+
+### Delete Location
+DELETE /api/locations/{id}
+
+CURL:
+curl -X DELETE http://localhost:8080/api/locations/3 \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+Response:
+{
+  "success": true,
+  "message": "Location deleted successfully"
+}
+
+## 5. ATTENDANCE APIs
+
+### Check In
+POST /api/attendance/check-in
+
+CURL (with file upload):
+curl -X POST http://localhost:8080/api/attendance/check-in \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -F "photo=@/path/to/photo.jpg" \
+  -F "latitude=-6.2088" \
+  -F "longitude=106.8456" \
+  -F "distance=45.5" \
+  -F "isValid=true" \
+  -F "address=Jl. Sudirman No. 123, Jakarta" \
+  -F "notes=Regular check-in"
+
+Response:
+{
+  "success": true,
+  "message": "Check-in successful",
+  "data": {
+    "id": "att_123456",
+    "user_id": "usr_123456",
+    "check_in_time": "08:30:00",
+    "date": "2025-01-15",
+    "location": {
+      "latitude": -6.2088,
+      "longitude": 106.8456,
+      "distance": 45.5,
+      "address": "Jl. Sudirman No. 123, Jakarta"
+    },
+    "photo_url": "http://localhost:8080/uploads/attendance/checkin_123456.jpg",
+    "status": "present",
+    "is_late": false,
+    "notes": "Regular check-in",
+    "created_at": "2025-01-15T08:30:00Z"
+  }
+}
+
+### Check Out
+POST /api/attendance/check-out
+
+CURL (with file upload):
+curl -X POST http://localhost:8080/api/attendance/check-out \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -F "photo=@/path/to/photo.jpg" \
+  -F "latitude=-6.2088" \
+  -F "longitude=106.8456" \
+  -F "distance=52.3" \
+  -F "isValid=true" \
+  -F "address=Jl. Sudirman No. 123, Jakarta" \
+  -F "notes=Work completed"
+
+Response:
+{
+  "success": true,
+  "message": "Check-out successful",
+  "data": {
+    "id": "att_123456",
+    "user_id": "usr_123456",
+    "check_in_time": "08:30:00",
+    "check_out_time": "17:30:00",
+    "date": "2025-01-15",
+    "total_hours": 9.0,
+    "overtime_hours": 0.5,
+    "location": {
+      "latitude": -6.2088,
+      "longitude": 106.8456,
+      "distance": 52.3,
+      "address": "Jl. Sudirman No. 123, Jakarta"
+    },
+    "check_out_photo_url": "http://localhost:8080/uploads/attendance/checkout_123456.jpg",
+    "status": "completed",
+    "notes": "Work completed",
+    "updated_at": "2025-01-15T17:30:00Z"
+  }
+}
+
+### Get My Attendance
+GET /api/attendance/my
+
+CURL:
+curl -X GET "http://localhost:8080/api/attendance/my?page=1&limit=20&month=2025-01" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+Response:
+{
+  "success": true,
+  "data": {
+    "attendance": [
+      {
+        "id": "att_123456",
+        "user_id": "usr_123456",
+        "date": "2025-01-15",
+        "check_in_time": "08:30:00",
+        "check_out_time": "17:30:00",
+        "total_hours": 9.0,
+        "overtime_hours": 0.5,
+        "status": "completed",
+        "location": {
+          "latitude": -6.2088,
+          "longitude": 106.8456,
+          "address": "Jl. Sudirman No. 123, Jakarta"
+        },
+        "photos": {
+          "check_in": "http://localhost:8080/uploads/attendance/checkin_123456.jpg",
+          "check_out": "http://localhost:8080/uploads/attendance/checkout_123456.jpg"
+        },
+        "notes": "Regular work day",
+        "created_at": "2025-01-15T08:30:00Z",
+        "updated_at": "2025-01-15T17:30:00Z"
+      }
+    ],
+    "pagination": {
+      "current_page": 1,
+      "total_pages": 3,
+      "total_records": 60,
+      "per_page": 20
+    }
+  }
+}
+
+### Get All Attendance (Admin)
+GET /api/attendance/all
+
+CURL:
+curl -X GET "http://localhost:8080/api/attendance/all?page=1&limit=20&month=2025-01&user_id=usr_123456" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+Response:
+{
+  "success": true,
+  "data": {
+    "attendance": [
+      {
+        "id": "att_123456",
+        "user": {
+          "id": "usr_123456",
+          "name": "John Doe",
+          "email": "john.doe@company.com"
+        },
+        "date": "2025-01-15",
+        "check_in_time": "08:30:00",
+        "check_out_time": "17:30:00",
+        "total_hours": 9.0,
+        "overtime_hours": 0.5,
+        "status": "completed",
+        "location": {
+          "latitude": -6.2088,
+          "longitude": 106.8456,
+          "address": "Jl. Sudirman No. 123, Jakarta"
+        },
+        "photos": {
+          "check_in": "http://localhost:8080/uploads/attendance/checkin_123456.jpg",
+          "check_out": "http://localhost:8080/uploads/attendance/checkout_123456.jpg"
+        },
+        "notes": "Regular work day",
+        "created_at": "2025-01-15T08:30:00Z",
+        "updated_at": "2025-01-15T17:30:00Z"
+      }
+    ],
+    "pagination": {
+      "current_page": 1,
+      "total_pages": 10,
+      "total_records": 200,
+      "per_page": 20
+    }
+  }
+}
+
+### Get Attendance Stats
+GET /api/attendance/stats
+
+CURL:
+curl -X GET "http://localhost:8080/api/attendance/stats?month=2025-01" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+Response:
+{
+  "success": true,
+  "data": {
+    "total_days": 31,
+    "working_days": 22,
+    "present_days": 20,
+    "absent_days": 2,
+    "late_days": 3,
+    "total_hours": 180.0,
+    "overtime_hours": 15.5,
+    "attendance_rate": 90.9,
+    "punctuality_rate": 85.0,
+    "average_check_in": "08:25:00",
+    "average_check_out": "17:35:00"
+  }
+}
+
+### Get Today Attendance
+GET /api/attendance/today
+
+CURL:
+curl -X GET http://localhost:8080/api/attendance/today \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+Response:
+{
+  "success": true,
+  "data": {
+    "has_checked_in": true,
+    "has_checked_out": false,
+    "attendance": {
+      "id": "att_123456",
+      "user_id": "usr_123456",
+      "date": "2025-01-15",
+      "check_in_time": "08:30:00",
+      "check_out_time": null,
+      "status": "active",
+      "location": {
+        "latitude": -6.2088,
+        "longitude": 106.8456,
+        "address": "Jl. Sudirman No. 123, Jakarta"
+      },
+      "check_in_photo": "http://localhost:8080/uploads/attendance/checkin_123456.jpg",
+      "notes": "Regular check-in",
+      "created_at": "2025-01-15T08:30:00Z"
+    }
+  }
+}
+
+### Update Attendance (Admin)
+PUT /api/attendance/{id}
+
+CURL:
+curl -X PUT http://localhost:8080/api/attendance/att_123456 \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "check_in_time": "08:00:00",
+    "check_out_time": "17:00:00",
+    "status": "completed",
+    "notes": "Adjusted by admin"
+  }'
+
+Response:
+{
+  "success": true,
+  "message": "Attendance updated successfully",
+  "data": {
+    "id": "att_123456",
+    "check_in_time": "08:00:00",
+    "check_out_time": "17:00:00",
+    "total_hours": 9.0,
+    "status": "completed",
+    "notes": "Adjusted by admin",
+    "updated_at": "2025-01-15T18:00:00Z"
+  }
+}
+
+### Delete Attendance (Admin)
+DELETE /api/attendance/{id}
+
+CURL:
+curl -X DELETE http://localhost:8080/api/attendance/att_123456 \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+Response:
+{
+  "success": true,
+  "message": "Attendance deleted successfully"
+}
+
+## 6. AUDIT LOGS APIs
+
+### Get Audit Logs
+GET /api/audit
+
+CURL:
+curl -X GET "http://localhost:8080/api/audit?page=1&limit=20&action=CREATE&table_name=staff&user_id=usr_123456" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+Response:
+{
+  "success": true,
+  "data": {
+    "logs": [
+      {
+        "id": "audit_123456",
+        "user_id": "usr_123456",
+        "user": {
+          "id": "usr_123456",
+          "name": "John Doe",
+          "email": "john.doe@company.com"
+        },
+        "action": "CREATE",
+        "table_name": "staff",
+        "record_id": "emp_789012",
+        "old_values": null,
+        "new_values": {
+          "employee_id": "EMP002",
+          "full_name": "Jane Smith",
+          "email": "jane.smith@company.com",
+          "position": "UI/UX Designer",
+          "department": "Design"
+        },
+        "ip_address": "192.168.1.100",
+        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "created_at": "2025-01-15T10:00:00Z"
+      },
+      {
+        "id": "audit_123457",
+        "user_id": "usr_123456",
+        "user": {
+          "id": "usr_123456",
+          "name": "John Doe",
+          "email": "john.doe@company.com"
+        },
+        "action": "UPDATE",
+        "table_name": "staff",
+        "record_id": "emp_123456",
+        "old_values": {
+          "position": "Software Developer",
+          "salary": 10000000
+        },
+        "new_values": {
+          "position": "Senior Software Developer",
+          "salary": 12000000
+        },
+        "ip_address": "192.168.1.100",
+        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "created_at": "2025-01-15T11:00:00Z"
+      }
+    ],
+    "pagination": {
+      "current_page": 1,
+      "total_pages": 15,
+      "total_records": 300,
+      "per_page": 20
+    }
+  }
+}
+
+### Get Audit Log by ID
+GET /api/audit/{id}
+
+CURL:
+curl -X GET http://localhost:8080/api/audit/audit_123456 \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+Response:
+{
+  "success": true,
+  "data": {
+    "id": "audit_123456",
+    "user_id": "usr_123456",
+    "user": {
+      "id": "usr_123456",
+      "name": "John Doe",
+      "email": "john.doe@company.com",
+      "role": {
+        "id": 1,
+        "name": "admin",
+        "display_name": "Administrator"
+      }
+    },
+    "action": "CREATE",
+    "table_name": "staff",
+    "record_id": "emp_789012",
+    "old_values": null,
+    "new_values": {
+      "employee_id": "EMP002",
+      "full_name": "Jane Smith",
+      "email": "jane.smith@company.com",
+      "position": "UI/UX Designer",
+      "department": "Design",
+      "hire_date": "2025-01-15",
+      "salary": 8000000
+    },
+    "ip_address": "192.168.1.100",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    "created_at": "2025-01-15T10:00:00Z"
+  }
+}
+
+## 7. ERROR RESPONSES
+
+### Authentication Errors
+
+#### Invalid Token
+Response (401):
+{
+  "success": false,
+  "message": "Invalid or expired token",
+  "error": "INVALID_TOKEN"
+}
+
+#### Missing Token
+Response (401):
+{
+  "success": false,
+  "message": "Authorization token required",
+  "error": "MISSING_TOKEN"
+}
+
+#### Insufficient Permissions
+Response (403):
+{
+  "success": false,
+  "message": "Insufficient permissions",
+  "error": "INSUFFICIENT_PERMISSIONS"
+}
+
+### Validation Errors
+
+#### Invalid Input
+Response (400):
+{
+  "success": false,
+  "message": "Validation failed",
+  "error": "VALIDATION_ERROR",
+  "details": {
+    "email": "Invalid email format",
+    "phone": "Phone number is required"
+  }
+}
+
+#### Resource Not Found
+Response (404):
+{
+  "success": false,
+  "message": "Resource not found",
+  "error": "NOT_FOUND"
+}
+
+#### Duplicate Entry
+Response (409):
+{
+  "success": false,
+  "message": "Resource already exists",
+  "error": "DUPLICATE_ENTRY",
+  "details": {
+    "field": "email",
+    "value": "john.doe@company.com"
+  }
+}
+
+### Server Errors
+
+#### Internal Server Error
+Response (500):
+{
+  "success": false,
+  "message": "Internal server error",
+  "error": "INTERNAL_ERROR"
+}
+
+#### Database Error
+Response (500):
+{
+  "success": false,
+  "message": "Database connection failed",
+  "error": "DATABASE_ERROR"
+}
+
+## 8. ATTENDANCE SPECIFIC ERRORS
+
+#### Already Checked In
+Response (400):
+{
+  "success": false,
+  "message": "Already checked in today",
+  "error": "ALREADY_CHECKED_IN"
+}
+
+#### Not Checked In
+Response (400):
+{
+  "success": false,
+  "message": "Must check in before checking out",
+  "error": "NOT_CHECKED_IN"
+}
+
+#### Location Out of Range
+Response (400):
+{
+  "success": false,
+  "message": "Location is outside allowed range",
+  "error": "LOCATION_OUT_OF_RANGE",
+  "details": {
+    "distance": 250.5,
+    "max_distance": 100
+  }
+}
+
+#### Invalid Working Hours
+Response (400):
+{
+  "success": false,
+  "message": "Outside working hours",
+  "error": "INVALID_WORKING_HOURS",
+  "details": {
+    "current_time": "06:30:00",
+    "working_hours": {
+      "start": "08:00:00",
+      "end": "17:00:00"
+    }
+  }
+}
+
+## 9. TESTING COMMANDS
+
+### Test Authentication
+# Login and save token
+TOKEN=$(curl -s -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin123"}' | \
+  jq -r '.data.token')
+
+# Use token for authenticated requests
+curl -X GET http://localhost:8080/api/auth/me \
+  -H "Authorization: Bearer $TOKEN"
+
+### Test Complete Workflow
+# 1. Login
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin123"}'
+
+# 2. Create staff
+curl -X POST http://localhost:8080/api/staff \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"employee_id":"EMP003","full_name":"Test User","email":"test@company.com","phone":"+62812345678","position":"Tester","department":"QA","hire_date":"2025-01-15","role_id":2}'
+
+# 3. Check attendance today
+curl -X GET http://localhost:8080/api/attendance/today \
+  -H "Authorization: Bearer YOUR_TOKEN"
+
+# 4. Check in (requires photo file)
+curl -X POST http://localhost:8080/api/attendance/check-in \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -F "photo=@test_photo.jpg" \
+  -F "latitude=-6.2088" \
+  -F "longitude=106.8456" \
+  -F "distance=45.5" \
+  -F "isValid=true" \
+  -F "address=Test Location"
+
+# 5. Get my attendance
+curl -X GET http://localhost:8080/api/attendance/my \
+  -H "Authorization: Bearer YOUR_TOKEN"
+
+# 6. Check out
+curl -X POST http://localhost:8080/api/attendance/check-out \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -F "photo=@test_photo.jpg" \
+  -F "latitude=-6.2088" \
+  -F "longitude=106.8456" \
+  -F "distance=50.0" \
+  -F "isValid=true" \
+  -F "address=Test Location"
+
+# 7. View audit logs
+curl -X GET http://localhost:8080/api/audit \
+  -H "Authorization: Bearer YOUR_TOKEN"
+
+## 10. ENVIRONMENT SETUP
+
+### Required Environment Variables (.env)
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=password
+DB_NAME=cybercafe_management
+JWT_SECRET=your-super-secret-jwt-key-here
+JWT_EXPIRATION=24h
+PORT=8080
+UPLOAD_PATH=./uploads
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001
+
+### Start Server
+go run cmd/main.go
+
+### Default Admin Credentials
+Username: admin
+Password: admin123
+
+### File Upload Requirements
+- Photo files for attendance check-in/check-out
+- Supported formats: JPG, JPEG, PNG
+- Maximum file size: 5MB
+- Files saved to: ./uploads/attendance/
+
+### Database Schema
+- PostgreSQL database
+- Auto-migration on startup
+- Default roles and admin user seeded
+- Default locations seeded
+
+### API Rate Limiting
+- Not implemented yet
+- Consider adding rate limiting for production
+
+### Security Headers
+- CORS enabled for specified origins
+- JWT authentication required for protected routes
+- Audit logging for all CUD operations
+
+### Pagination
+- Default page size: 20
+- Maximum page size: 100
+- Standard pagination response format
+
+### File Structure
+/uploads/
+  /attendance/
+    /checkin_[attendance_id].jpg
+    /checkout_[attendance_id].jpg
+
+### Response Format
+All responses follow standard format:
+{
+  "success": boolean,
+  "message": string (optional),
+  "data": object/array (optional),
+  "error": string (optional),
+  "details": object (optional)
+}

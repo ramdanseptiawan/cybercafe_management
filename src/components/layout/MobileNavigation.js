@@ -1,7 +1,7 @@
 import { Coffee, Users, LogOut, Monitor, Settings, Menu as MenuIcon, Package, ShoppingCart, FileText, DollarSign, TrendingUp, Clipboard } from 'lucide-react';
 
 const MobileNavigation = ({ mobileMenuOpen, setMobileMenuOpen, activeTab, setActiveTab, user, logout, isAdmin }) => {
-  const userRole = user?.role;
+  const userRole = user?.role?.name; // Mengambil nama role dari object role
   
   // Define menu items based on role
   const getMenuItems = () => {
@@ -67,7 +67,7 @@ const MobileNavigation = ({ mobileMenuOpen, setMobileMenuOpen, activeTab, setAct
                 </div>
                 <div>
                   <p className="font-medium text-gray-800">{user?.name || 'User'}</p>
-                  <p className="text-sm text-gray-500 capitalize">{userRole || 'Staff Member'}</p>
+                  <p className="text-sm text-gray-500 capitalize">{user?.role?.name || 'Staff Member'}</p>
                 </div>
               </div>
               <button

@@ -83,13 +83,22 @@ export default function CameraApp() {
     const canvas = canvasRef.current;
     const video = videoRef.current;
     
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    // ✅ PERBAIKAN: Gunakan resolusi yang lebih tinggi
+    const scale = 2; // Tingkatkan resolusi 2x
+    canvas.width = video.videoWidth * scale;
+    canvas.height = video.videoHeight * scale;
     
     const ctx = canvas.getContext('2d');
+    // ✅ PERBAIKAN: Aktifkan image smoothing untuk kualitas lebih baik
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    
+    // Scale context untuk resolusi tinggi
+    ctx.scale(scale, scale);
     ctx.drawImage(video, 0, 0);
     
-    const dataURL = canvas.toDataURL('image/jpeg', 0.8);
+    // ✅ PERBAIKAN: Tingkatkan kualitas JPEG dari 0.8 ke 0.95
+    const dataURL = canvas.toDataURL('image/jpeg', 0.95);
     setCapturedPhoto(dataURL);
   };
 
