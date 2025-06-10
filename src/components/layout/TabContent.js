@@ -14,6 +14,7 @@ import AuditLogs from '../settings/AuditLogs';
 import IndividualAttendance from '../attendance/IndividualAttendance';
 import { useAuth } from '../../context/AuthContext';
 import EmployeeDashboard from '../dashboard/EmployeeDashboard';
+import LocationManagement from '../settings/LocationManagement';
 
 const TabContent = ({ activeTab, settingsTab, setSettingsTab, state, handlers, isAdmin, modals }) => {
   const { user } = useAuth();
@@ -304,6 +305,16 @@ const TabContent = ({ activeTab, settingsTab, setSettingsTab, state, handlers, i
                   >
                     Audit Logs
                   </button>
+                  <button
+                    onClick={() => setSettingsTab('locations')}
+                    className={`py-3 sm:py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                      settingsTab === 'locations'
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    Locations
+                  </button>
                 </nav>
               </div>
               <div className="p-4 sm:p-6">
@@ -354,6 +365,10 @@ const TabContent = ({ activeTab, settingsTab, setSettingsTab, state, handlers, i
                     logs={auditLogs}
                     isAdmin={true}
                   />
+                )}
+                
+                {settingsTab === 'locations' && (
+                  <LocationManagement />
                 )}
               </div>
             </div>

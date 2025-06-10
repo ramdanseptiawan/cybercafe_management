@@ -75,6 +75,10 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to generate token", err)
 	}
 
+	// Capture values before goroutine to avoid context reuse issues
+	ipAddress := c.IP()
+	userAgent := c.Get("User-Agent")
+
 	// Log successful login
 	go func() {
 		auditLog := models.AuditLog{
@@ -82,8 +86,8 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 			Action:    "LOGIN_SUCCESS",
 			Resource:  "/auth/login",
 			Details:   "User logged in successfully",
-			IPAddress: c.IP(),
-			UserAgent: c.Get("User-Agent"),
+			IPAddress: ipAddress,
+			UserAgent: userAgent,
 		}
 		h.db.Create(&auditLog)
 	}()
@@ -146,6 +150,10 @@ func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 		return utils.ErrorResponse(c, fiber.StatusUnauthorized, "User not authenticated", nil)
 	}
 
+	// Capture values before goroutine to avoid context reuse issues
+	ipAddress := c.IP()
+	userAgent := c.Get("User-Agent")
+
 	// Log logout
 	go func() {
 		// Convert userID to uuid.UUID
@@ -168,8 +176,8 @@ func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 			Action:    "LOGOUT",
 			Resource:  "/auth/logout",
 			Details:   "User logged out",
-			IPAddress: c.IP(),
-			UserAgent: c.Get("User-Agent"),
+			IPAddress: ipAddress,  // Use captured value
+			UserAgent: userAgent,  // Use captured value
 		}
 		h.db.Create(&auditLog)
 	}()

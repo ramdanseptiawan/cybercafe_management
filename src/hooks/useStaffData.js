@@ -44,7 +44,11 @@ export const useStaffData = () => {
       setLoading(true);
       const response = await staffService.createStaff(newStaff);
       if (response.success) {
-        setStaff(prev => [...prev, response.data.user]);
+        // Refresh data dengan memanggil ulang getAllStaff untuk memastikan data terbaru
+        const staffResponse = await staffService.getAllStaff();
+        if (staffResponse.success) {
+          setStaff(staffResponse.data || []);
+        }
         return { success: true };
       }
       return { success: false, message: response.message };

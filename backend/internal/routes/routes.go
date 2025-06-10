@@ -50,16 +50,6 @@ func Setup(app *fiber.App, db *gorm.DB, cfg *config.Config) {
 	roles.Put("/:id", roleHandler.UpdateRole)
 	roles.Delete("/:id", roleHandler.DeleteRole)
 
-	// Location routes
-	locations := protected.Group("/locations")
-	locations.Get("/", locationHandler.GetAllLocations)
-	locations.Post("/", locationHandler.CreateLocation)
-	locations.Get("/nearby", locationHandler.GetNearbyLocations)
-	locations.Post("/validate", locationHandler.ValidateLocation)
-	locations.Get("/:id", locationHandler.GetLocationByID)
-	locations.Put("/:id", locationHandler.UpdateLocation)
-	locations.Delete("/:id", locationHandler.DeleteLocation)
-
 	// Attendance routes
 	attendance := protected.Group("/attendance")
 	attendance.Post("/check-in", attendanceHandler.CheckIn)
@@ -70,6 +60,15 @@ func Setup(app *fiber.App, db *gorm.DB, cfg *config.Config) {
 	attendance.Get("/today", attendanceHandler.GetTodayAttendance)
 	attendance.Put("/:id", attendanceHandler.UpdateAttendance)
 	attendance.Delete("/:id", attendanceHandler.DeleteAttendance)
+
+	// Location routes under attendance (sesuai dokumentasi API)
+	attendance.Get("/locations", locationHandler.GetAllLocations)
+	attendance.Post("/locations", locationHandler.CreateLocation)
+	attendance.Get("/locations/nearby", locationHandler.GetNearbyLocations)
+	attendance.Post("/locations/validate", locationHandler.ValidateLocation)
+	attendance.Get("/locations/:id", locationHandler.GetLocationByID)
+	attendance.Put("/locations/:id", locationHandler.UpdateLocation)
+	attendance.Delete("/locations/:id", locationHandler.DeleteLocation)
 
 	// Audit routes
 	audit := protected.Group("/audit")
