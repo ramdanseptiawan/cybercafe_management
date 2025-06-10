@@ -44,6 +44,60 @@ const AttendanceCheckIn = ({ employee, onSubmit, allowedLocations = [] }) => {
     fetchLocations();
   }, []);
 
+  // Tambahkan state untuk address
+  const [currentAddress, setCurrentAddress] = useState('');
+  const [loadingAddress, setLoadingAddress] = useState(false);
+
+  // Fungsi untuk mendapatkan address dari koordinat menggunakan Nominatim (gratis)
+  const getAddressFromCoordinates = async (latitude, longitude) => {
+    try {
+      setLoadingAddress(true);
+      
+      // Menggunakan Nominatim OpenStreetMap (gratis, tanpa API key)
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
+        {
+          headers: {
+            'User-Agent': 'CyberCafe-Management-App' // Required by Nominatim
+          }
+        }
+      );
+      
+      if (!response.ok) {
+        throw new Error('Gagal mendapatkan data lokasi');
+      }
+      
+      const data = await response.json();
+      
+      if (data && data.display_name) {
+        // Format address yang lebih ringkas
+        const address = data.address;
+        let formattedAddress = '';
+        
+        if (address) {
+          const parts = [];
+          if (address.road) parts.push(address.road);
+          if (address.suburb || address.village) parts.push(address.suburb || address.village);
+          if (address.city || address.town) parts.push(address.city || address.town);
+          if (address.state) parts.push(address.state);
+          
+          formattedAddress = parts.length > 0 ? parts.join(', ') : data.display_name;
+        } else {
+          formattedAddress = data.display_name;
+        }
+        
+        return formattedAddress;
+      }
+      
+      return 'Alamat tidak ditemukan';
+    } catch (error) {
+      console.error('Error getting address:', error);
+      return 'Gagal mendapatkan alamat';
+    } finally {
+      setLoadingAddress(false);
+    }
+  };
+
   const handleLocationCapture = async () => {
     setLoading(true);
     setError(null);
@@ -52,18 +106,27 @@ const AttendanceCheckIn = ({ employee, onSubmit, allowedLocations = [] }) => {
     try {
       const locationData = await getCurrentLocation();
       
-      // DEBUG: Log koordinat user
-      console.log('User coordinates:', {
+      // Dapatkan address dari koordinat
+      const address = await getAddressFromCoordinates(
+        locationData.latitude, 
+        locationData.longitude
+      );
+      setCurrentAddress(address);
+      
+      // DEBUG: Log koordinat user dan address
+      console.log('User location:', {
           latitude: locationData.latitude,
           longitude: locationData.longitude,
-          accuracy: locationData.accuracy
+          accuracy: locationData.accuracy,
+          address: address
       });
       
       // Validate location with API
       const validationResponse = await locationService.validateLocation({
         latitude: locationData.latitude,
         longitude: locationData.longitude,
-        accuracy: locationData.accuracy
+        accuracy: locationData.accuracy,
+        address: address // Kirim address ke backend
       });
       
       // DEBUG: Log response dari server
@@ -81,7 +144,8 @@ const AttendanceCheckIn = ({ employee, onSubmit, allowedLocations = [] }) => {
           ...prev,
           location: {
             ...locationData,
-            locationId: validationResponse.data.location.id
+            locationId: validationResponse.data.location.id,
+            address: address // Simpan address dalam attendance data
           },
           timestamp: new Date().toISOString()
         }));
@@ -246,6 +310,72 @@ const AttendanceCheckIn = ({ employee, onSubmit, allowedLocations = [] }) => {
         </div>
       )}
 
+      {/* CARD BARU: Informasi Lokasi Real-time - Selalu tampil setelah capture */}
+      {(attendanceData.location || location || currentAddress || loadingAddress || locationLoading) && (
+        <div className="border border-purple-200 rounded-lg p-4 mb-4 bg-purple-50">
+          <div className="flex items-start gap-2">
+            <MapPin className="text-purple-600 flex-shrink-0 mt-0.5" size={20} />
+            <div className="flex-1">
+              <h4 className="font-semibold text-purple-800 mb-3 flex items-center gap-2">
+                📍 Informasi Lokasi Anda
+              </h4>
+              
+              {/* Status Loading */}
+              {(locationLoading || loadingAddress) && (
+                <div className="mb-3 p-2 bg-white rounded border border-purple-200">
+                  <div className="flex items-center space-x-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
+                    <span className="text-sm text-purple-700">
+                      {locationLoading ? 'Mengambil koordinat GPS...' : 'Mengambil alamat...'}
+                    </span>
+                  </div>
+                </div>
+              )}
+              
+              {/* Koordinat GPS */}
+              {(location || attendanceData.location) && (
+                <div className="mb-3 p-3 bg-white rounded border border-purple-200">
+                  <p className="text-sm font-medium text-purple-800 mb-2">🌐 Koordinat GPS:</p>
+                  <div className="space-y-1">
+                    <p className="text-sm text-purple-700 font-mono bg-purple-100 p-2 rounded">
+                      Latitude: {(location?.latitude || attendanceData.location?.latitude)?.toFixed(6)}
+                    </p>
+                    <p className="text-sm text-purple-700 font-mono bg-purple-100 p-2 rounded">
+                      Longitude: {(location?.longitude || attendanceData.location?.longitude)?.toFixed(6)}
+                    </p>
+                    {(location?.accuracy || attendanceData.location?.accuracy) && (
+                      <p className="text-xs text-purple-600 mt-1">
+                        🎯 Akurasi: ±{Math.round(location?.accuracy || attendanceData.location?.accuracy)}m
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {/* Alamat */}
+              <div className="p-3 bg-white rounded border border-purple-200">
+                <p className="text-sm font-medium text-purple-800 mb-2">🏠 Alamat Lengkap:</p>
+                {loadingAddress ? (
+                  <div className="flex items-center space-x-2">
+                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-purple-600"></div>
+                    <span className="text-sm text-purple-600">Sedang mengambil alamat...</span>
+                  </div>
+                ) : (
+                  <p className="text-sm text-purple-700 bg-purple-100 p-2 rounded leading-relaxed">
+                    {currentAddress || attendanceData.location?.address || 'Alamat belum tersedia'}
+                  </p>
+                )}
+              </div>
+              
+              {/* Timestamp */}
+              <div className="mt-2 text-xs text-purple-600">
+                ⏰ Diambil pada: {new Date().toLocaleString('id-ID')}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Step 1: Location */}
       {step === 'location' && (
         <div className="space-y-4">
@@ -272,6 +402,18 @@ const AttendanceCheckIn = ({ employee, onSubmit, allowedLocations = [] }) => {
                 </div>
               </div>
             )}
+            
+            {/* Debug Info - Tampilkan state saat ini */}
+            <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200 text-left">
+              <p className="text-xs font-medium text-yellow-800 mb-2">🔧 Debug Info:</p>
+              <div className="space-y-1 text-xs text-yellow-700">
+                <p>Location state: {location ? 'Ada data' : 'Kosong'}</p>
+                <p>Current address: {currentAddress ? 'Ada alamat' : 'Kosong'}</p>
+                <p>Loading address: {loadingAddress ? 'Ya' : 'Tidak'}</p>
+                <p>Location loading: {locationLoading ? 'Ya' : 'Tidak'}</p>
+                <p>Attendance location: {attendanceData.location ? 'Ada data' : 'Kosong'}</p>
+              </div>
+            </div>
           </div>
           
           <button
