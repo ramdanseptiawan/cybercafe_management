@@ -201,7 +201,8 @@ func (h *AttendanceHandler) GetAllAttendance(c *fiber.Ctx) error {
 	query := h.db.Preload("User").Preload("User.Role")
 
 	if month != "" {
-		query = query.Where("DATE_FORMAT(check_in_time, '%Y-%m') = ?", month)
+		// Ganti DATE_FORMAT (MySQL) dengan TO_CHAR (PostgreSQL)
+		query = query.Where("TO_CHAR(check_in_time, 'YYYY-MM') = ?", month)
 	}
 
 	if userIDStr != "" {
@@ -246,7 +247,8 @@ func (h *AttendanceHandler) GetAttendanceStats(c *fiber.Ctx) error {
 	}
 
 	if month != "" {
-		query = query.Where("DATE_FORMAT(check_in_time, '%Y-%m') = ?", month)
+		// Ganti DATE_FORMAT (MySQL) dengan TO_CHAR (PostgreSQL)
+		query = query.Where("TO_CHAR(check_in_time, 'YYYY-MM') = ?", month)
 	}
 
 	var totalDays int64
