@@ -17,6 +17,7 @@ func Setup(app *fiber.App, db *gorm.DB, cfg *config.Config) {
 	attendanceHandler := handlers.NewAttendanceHandler(db, cfg)
 	auditHandler := handlers.NewAuditHandler(db)
 	locationHandler := handlers.NewLocationHandler(db)
+	mealAllowanceHandler := handlers.NewMealAllowanceHandler(db, cfg)
 
 	// Initialize middleware
 	authMiddleware := middleware.AuthRequired(cfg)
@@ -73,4 +74,13 @@ func Setup(app *fiber.App, db *gorm.DB, cfg *config.Config) {
 	// Audit routes
 	audit := protected.Group("/audit")
 	audit.Get("/", auditHandler.GetAuditLogs)
+
+	// Meal Allowance routes
+	mealAllowance := protected.Group("/meal-allowance")
+	mealAllowance.Get("/preview", mealAllowanceHandler.GetMealAllowancePreview)
+	mealAllowance.Post("/claim", mealAllowanceHandler.ClaimMealAllowance)
+	mealAllowance.Get("/my", mealAllowanceHandler.GetMyMealAllowances)
+	mealAllowance.Get("/all", mealAllowanceHandler.GetAllMealAllowances)
+	mealAllowance.Put("/:id/status", mealAllowanceHandler.UpdateMealAllowanceStatus)
+	mealAllowance.Get("/stats", mealAllowanceHandler.GetMealAllowanceStats)
 }

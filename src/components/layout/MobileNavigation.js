@@ -18,11 +18,13 @@ const MobileNavigation = ({ mobileMenuOpen, setMobileMenuOpen, activeTab, setAct
       { id: 'transactions', label: 'Finance', icon: DollarSign, roles: ['admin'] },
       { id: 'reports', label: 'Reports', icon: FileText, roles: ['admin'] },
       { id: 'attendance', label: 'Attendance', icon: Clipboard, roles: ['admin'] },
+      { id: 'meal-allowance-management', label: 'Meal Allowance', icon: DollarSign, roles: ['admin'] },
       { id: 'settings', label: 'Settings', icon: Settings, roles: ['admin'] }
     ];
     
     const employeeItems = [
       { id: 'individual-attendance', label: 'My Attendance', icon: Clipboard, roles: ['employee'] },
+      { id: 'meal-allowance', label: 'Meal Allowance', icon: DollarSign, roles: ['employee'] },
       { id: 'kitchen', label: 'Kitchen', icon: ShoppingCart, roles: ['employee'] }
     ];
     

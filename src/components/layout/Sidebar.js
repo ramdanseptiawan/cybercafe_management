@@ -155,6 +155,16 @@ const Sidebar = ({ user, logout, isAdmin, activeTab, setActiveTab, sidebarCollap
               <Clipboard className="w-5 h-5 mr-3" />
               {!sidebarCollapsed && <span>Staff Attendance</span>}
             </button>
+            <button 
+              onClick={() => setActiveTab('meal-allowance-management')}
+              className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'px-4'} py-3 w-full text-left ${
+                activeTab === 'meal-allowance-management' ? 'bg-gray-700' : 'hover:bg-gray-700'
+              }`}
+              title="Meal Allowance Management"
+            >
+              <DollarSign className="w-5 h-5 mr-3" />
+              {!sidebarCollapsed && <span>Meal Allowance</span>}
+            </button>
             
             {/* Settings */}
             <div className={`px-4 mt-6 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider ${sidebarCollapsed ? 'sr-only' : ''}`}>
@@ -229,6 +239,16 @@ const Sidebar = ({ user, logout, isAdmin, activeTab, setActiveTab, sidebarCollap
             >
               <UserPlus className="w-5 h-5 mr-3" />
               {!sidebarCollapsed && <span>My Attendance</span>}
+            </button>
+            <button 
+              onClick={() => setActiveTab('meal-allowance')}
+              className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'px-4'} py-3 w-full text-left ${
+                activeTab === 'meal-allowance' ? 'bg-gray-700' : 'hover:bg-gray-700'
+              }`}
+              title="My Meal Allowance"
+            >
+              <DollarSign className="w-5 h-5 mr-3" />
+              {!sidebarCollapsed && <span>Meal Allowance</span>}
             </button>
           </>
         )}

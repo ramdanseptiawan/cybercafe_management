@@ -9,6 +9,8 @@ import SessionManagement from '../sessions/SessionManagement';
 import CustomerManagement from '../customers/CustomerManagement';
 import KitchenManagement from '../kitchen/KitchenManagement';
 import AttendanceManagement from '../attendance/AttendanceManagement';
+import MealAllowance from '../attendance/MealAllowance';
+import MealAllowanceManagement from '../attendance/MealAllowanceManagement';
 import StaffManagement from '../settings/StaffManagement';
 import AuditLogs from '../settings/AuditLogs';
 import IndividualAttendance from '../attendance/IndividualAttendance';
@@ -254,10 +256,35 @@ const TabContent = ({ activeTab, settingsTab, setSettingsTab, state, handlers, i
         ) : <AccessDenied />
       )}
       
+      {activeTab === 'meal-allowance-management' && (
+        hasAccess('admin') ? (
+          <MealAllowanceManagement 
+            currentUser={{
+              id: user?.id || 'ADMIN001',
+              name: user?.name || 'Admin',
+              role: userRole
+            }}
+          />
+        ) : <AccessDenied />
+      )}
+      
       {/* EMPLOYEE ONLY SECTIONS */}
       {activeTab === 'individual-attendance' && (
         hasAccess('employee') ? (
           <IndividualAttendance 
+            currentUser={{
+              id: user?.id || 'EMP001',
+              name: user?.name || 'Employee',
+              department: user?.department || 'General',
+              role: userRole
+            }}
+          />
+        ) : <AccessDenied />
+      )}
+      
+      {activeTab === 'meal-allowance' && (
+        hasAccess('employee') ? (
+          <MealAllowance 
             currentUser={{
               id: user?.id || 'EMP001',
               name: user?.name || 'Employee',
