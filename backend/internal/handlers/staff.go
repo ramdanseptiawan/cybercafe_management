@@ -20,13 +20,15 @@ func NewStaffHandler(db *gorm.DB) *StaffHandler {
 }
 
 type CreateStaffRequest struct {
-	Username string    `json:"username" validate:"required"`
-	Email    string    `json:"email" validate:"required,email"`
-	Password string    `json:"password" validate:"required,min=6"`
-	Name     string    `json:"name" validate:"required"`
-	Phone    string    `json:"phone"`
-	Address  string    `json:"address"`
-	RoleID   uuid.UUID `json:"role_id" validate:"required"`
+	Username   string    `json:"username" validate:"required"`
+	Email      string    `json:"email" validate:"required,email"`
+	Password   string    `json:"password" validate:"required,min=6"`
+	Name       string    `json:"name" validate:"required"`
+	Phone      string    `json:"phone"`
+	Address    string    `json:"address"`
+	KTPNumber  string    `json:"ktp_number"`
+	EmployeeID string    `json:"employee_id"`
+	RoleID     uuid.UUID `json:"role_id" validate:"required"`
 }
 
 func (h *StaffHandler) CreateStaff(c *fiber.Ctx) error {
@@ -35,10 +37,23 @@ func (h *StaffHandler) CreateStaff(c *fiber.Ctx) error {
 		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body", err)
 	}
 
-	// Check if username or email already exists
+	// Check if username, email, KTP number, or employee ID already exists
 	var existingUser models.User
-	if err := h.db.Where("username = ? OR email = ?", req.Username, req.Email).First(&existingUser).Error; err == nil {
-		return utils.ErrorResponse(c, fiber.StatusConflict, "Username or email already exists", nil)
+	query := "username = ? OR email = ?"
+	args := []interface{}{req.Username, req.Email}
+	
+	if req.KTPNumber != "" {
+		query += " OR ktp_number = ?"
+		args = append(args, req.KTPNumber)
+	}
+	
+	if req.EmployeeID != "" {
+		query += " OR employee_id = ?"
+		args = append(args, req.EmployeeID)
+	}
+	
+	if err := h.db.Where(query, args...).First(&existingUser).Error; err == nil {
+		return utils.ErrorResponse(c, fiber.StatusConflict, "Username, email, KTP number, or employee ID already exists", nil)
 	}
 
 	// Check if role exists
@@ -48,13 +63,15 @@ func (h *StaffHandler) CreateStaff(c *fiber.Ctx) error {
 	}
 
 	user := models.User{
-		Username: req.Username,
-		Email:    req.Email,
-		Name:     req.Name,
-		Phone:    req.Phone,
-		Address:  req.Address,
-		RoleID:   req.RoleID,
-		IsActive: true,
+		Username:   req.Username,
+		Email:      req.Email,
+		Name:       req.Name,
+		Phone:      req.Phone,
+		Address:    req.Address,
+		KTPNumber:  req.KTPNumber,
+		EmployeeID: req.EmployeeID,
+		RoleID:     req.RoleID,
+		IsActive:   true,
 	}
 
 	if err := user.SetPassword(req.Password); err != nil {
@@ -122,11 +139,13 @@ func (h *StaffHandler) GetStaffByID(c *fiber.Ctx) error {
 }
 
 type UpdateStaffRequest struct {
-	Email   string    `json:"email" validate:"email"`
-	Name    string    `json:"name"`
-	Phone   string    `json:"phone"`
-	Address string    `json:"address"`
-	RoleID  uuid.UUID `json:"role_id"`
+	Email      string    `json:"email" validate:"email"`
+	Name       string    `json:"name"`
+	Phone      string    `json:"phone"`
+	Address    string    `json:"address"`
+	KTPNumber  string    `json:"ktp_number"`
+	EmployeeID string    `json:"employee_id"`
+	RoleID     uuid.UUID `json:"role_id"`
 }
 
 func (h *StaffHandler) UpdateStaff(c *fiber.Ctx) error {
@@ -166,6 +185,12 @@ func (h *StaffHandler) UpdateStaff(c *fiber.Ctx) error {
 	}
 	if req.Address != "" {
 		user.Address = req.Address
+	}
+	if req.KTPNumber != "" {
+		user.KTPNumber = req.KTPNumber
+	}
+	if req.EmployeeID != "" {
+		user.EmployeeID = req.EmployeeID
 	}
 
 	if err := h.db.Save(&user).Error; err != nil {

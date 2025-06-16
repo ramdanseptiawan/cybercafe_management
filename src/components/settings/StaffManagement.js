@@ -35,6 +35,8 @@ const StaffManagement = () => {
     name: '',
     phone: '',
     address: '',
+    ktp_number: '',
+    employee_id: '',
     role_id: '',
     is_active: true
   });
@@ -128,6 +130,8 @@ const StaffManagement = () => {
       name: '',
       phone: '',
       address: '',
+      ktp_number: '',
+      employee_id: '',
       role_id: '',
       is_active: true
     });
@@ -154,6 +158,8 @@ const StaffManagement = () => {
       name: staff.name || '',
       phone: staff.phone || '',
       address: staff.address || '',
+      ktp_number: staff.ktp_number || '',
+      employee_id: staff.employee_id || '',
       role_id: staff.role?.id || '', // Ubah dari staff.role_id ke staff.role?.id
       is_active: staff.is_active !== undefined ? staff.is_active : true
     });
@@ -286,6 +292,13 @@ const StaffManagement = () => {
                         <div className="text-sm text-gray-500">
                           Role: {member?.role?.name || 'Unknown'}
                         </div>
+                        {(member?.ktp_number || member?.employee_id) && (
+                          <div className="text-sm text-gray-500">
+                            {member?.ktp_number && `KTP: ${member.ktp_number}`}
+                            {member?.ktp_number && member?.employee_id && ' • '}
+                            {member?.employee_id && `ID: ${member.employee_id}`}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -460,6 +473,26 @@ const StaffManagement = () => {
                   />
                 </div>
                 <div>
+                  <label className="block text-sm font-medium text-gray-700">KTP Number</label>
+                  <input
+                    type="text"
+                    value={staffForm.ktp_number}
+                    onChange={(e) => setStaffForm({...staffForm, ktp_number: e.target.value})}
+                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter KTP number"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Employee ID</label>
+                  <input
+                    type="text"
+                    value={staffForm.employee_id}
+                    onChange={(e) => setStaffForm({...staffForm, employee_id: e.target.value})}
+                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter employee ID"
+                  />
+                </div>
+                <div>
                   <label className="block text-sm font-medium text-gray-700">Role</label>
                   <select
                     required
@@ -604,6 +637,16 @@ const StaffManagement = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Address</label>
                     <p className="text-sm text-gray-900">{selectedStaff.address || '-'}</p>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">KTP Number</label>
+                    <p className="text-sm text-gray-900">{selectedStaff.ktp_number || '-'}</p>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Employee ID</label>
+                    <p className="text-sm text-gray-900">{selectedStaff.employee_id || '-'}</p>
                   </div>
                   
                   <div>

@@ -10,15 +10,7 @@ const MobileNavigation = ({ mobileMenuOpen, setMobileMenuOpen, activeTab, setAct
     ];
     
     const adminItems = [
-      { id: 'computers', label: 'PC', icon: Monitor, roles: ['admin'] },
-      { id: 'customers', label: 'Customer', icon: Users, roles: ['admin'] },
-      { id: 'menu', label: 'Menu', icon: Coffee, roles: ['admin'] },
-      { id: 'stock', label: 'Stock', icon: Package, roles: ['admin'] },
-      { id: 'kitchen', label: 'Kitchen', icon: ShoppingCart, roles: ['admin'] },
-      { id: 'transactions', label: 'Finance', icon: DollarSign, roles: ['admin'] },
-      { id: 'reports', label: 'Reports', icon: FileText, roles: ['admin'] },
       { id: 'attendance', label: 'Attendance', icon: Clipboard, roles: ['admin'] },
-
       { id: 'management-allowance-meal', label: 'Management Allowance Meal', icon: Eye, roles: ['admin'] },
       { id: 'settings', label: 'Settings', icon: Settings, roles: ['admin'] }
     ];
