@@ -96,6 +96,10 @@ func (h *StaffHandler) GetAllStaff(c *fiber.Ctx) error {
 	offset := (page - 1) * limit
 
 	query := h.db.Preload("Role")
+	
+	// Exclude admin users from staff list
+	query = query.Joins("JOIN roles ON users.role_id = roles.id").Where("roles.name != 'admin'")
+	
 	if search != "" {
 		query = query.Where("name LIKE ? OR username LIKE ? OR email LIKE ?", "%"+search+"%", "%"+search+"%", "%"+search+"%")
 	}

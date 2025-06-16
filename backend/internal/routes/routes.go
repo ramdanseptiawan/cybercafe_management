@@ -15,6 +15,7 @@ func Setup(app *fiber.App, db *gorm.DB, cfg *config.Config) {
 	staffHandler := handlers.NewStaffHandler(db)
 	roleHandler := handlers.NewRoleHandler(db)
 	attendanceHandler := handlers.NewAttendanceHandler(db, cfg)
+	attendanceDashboardHandler := handlers.NewAttendanceDashboardHandler(db, cfg)
 	auditHandler := handlers.NewAuditHandler(db)
 	locationHandler := handlers.NewLocationHandler(db)
 	mealAllowanceHandler := handlers.NewMealAllowanceHandler(db, cfg)
@@ -64,6 +65,11 @@ func Setup(app *fiber.App, db *gorm.DB, cfg *config.Config) {
 	attendance.Put("/:id", attendanceHandler.UpdateAttendance)
 	attendance.Delete("/:id", attendanceHandler.DeleteAttendance)
 
+	// Attendance Dashboard routes
+	attendance.Get("/dashboard/today", attendanceDashboardHandler.GetTodayDashboard)
+	attendance.Get("/dashboard/monthly", attendanceDashboardHandler.GetMonthlyDashboard)
+	attendance.Get("/dashboard/date", attendanceDashboardHandler.GetSpecificDateDashboard)
+
 	// Location routes under attendance (sesuai dokumentasi API)
 	attendance.Get("/locations", locationHandler.GetAllLocations)
 	attendance.Post("/locations", locationHandler.CreateLocation)
@@ -94,4 +100,8 @@ func Setup(app *fiber.App, db *gorm.DB, cfg *config.Config) {
 	dashboard := protected.Group("/dashboard")
 	dashboard.Get("/employee", dashboardHandler.GetEmployeeDashboard)
 	dashboard.Get("/employee/summary", dashboardHandler.GetEmployeeSummary)
+
+	// Admin routes
+	admin := protected.Group("/admin")
+	admin.Get("/dashboard", dashboardHandler.GetAdminDashboard)
 }

@@ -200,6 +200,9 @@ func (h *AttendanceHandler) GetAllAttendance(c *fiber.Ctx) error {
 
 	query := h.db.Preload("User").Preload("User.Role")
 
+	// Exclude admin users from attendance records
+	query = query.Joins("JOIN users ON attendances.user_id = users.id").Joins("JOIN roles ON users.role_id = roles.id").Where("roles.name != 'admin'")
+
 	if month != "" {
 		// Ganti DATE_FORMAT (MySQL) dengan TO_CHAR (PostgreSQL)
 		query = query.Where("TO_CHAR(check_in_time, 'YYYY-MM') = ?", month)
