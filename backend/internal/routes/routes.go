@@ -18,6 +18,7 @@ func Setup(app *fiber.App, db *gorm.DB, cfg *config.Config) {
 	auditHandler := handlers.NewAuditHandler(db)
 	locationHandler := handlers.NewLocationHandler(db)
 	mealAllowanceHandler := handlers.NewMealAllowanceHandler(db, cfg)
+	dashboardHandler := handlers.NewDashboardHandler(db, cfg)
 
 	// Initialize middleware
 	authMiddleware := middleware.AuthRequired(cfg)
@@ -59,6 +60,7 @@ func Setup(app *fiber.App, db *gorm.DB, cfg *config.Config) {
 	attendance.Get("/all", attendanceHandler.GetAllAttendance)
 	attendance.Get("/stats", attendanceHandler.GetAttendanceStats)
 	attendance.Get("/today", attendanceHandler.GetTodayAttendance)
+	attendance.Get("/employee/:userId/detail", attendanceHandler.GetEmployeeAttendanceDetail)
 	attendance.Put("/:id", attendanceHandler.UpdateAttendance)
 	attendance.Delete("/:id", attendanceHandler.DeleteAttendance)
 
@@ -81,6 +83,15 @@ func Setup(app *fiber.App, db *gorm.DB, cfg *config.Config) {
 	mealAllowance.Post("/claim", mealAllowanceHandler.ClaimMealAllowance)
 	mealAllowance.Get("/my", mealAllowanceHandler.GetMyMealAllowances)
 	mealAllowance.Get("/all", mealAllowanceHandler.GetAllMealAllowances)
-	mealAllowance.Put("/:id/status", mealAllowanceHandler.UpdateMealAllowanceStatus)
+	mealAllowance.Put("/:id/approve", mealAllowanceHandler.ApproveMealAllowance)
+	mealAllowance.Put("/:id/reject", mealAllowanceHandler.RejectMealAllowance)
+	mealAllowance.Get("/policy", mealAllowanceHandler.GetMealAllowancePolicy)
+	mealAllowance.Put("/policy", mealAllowanceHandler.UpdateMealAllowancePolicy)
+	mealAllowance.Get("/management", attendanceHandler.GetMealAllowanceManagement)
 	mealAllowance.Get("/stats", mealAllowanceHandler.GetMealAllowanceStats)
+
+	// Dashboard routes
+	dashboard := protected.Group("/dashboard")
+	dashboard.Get("/employee", dashboardHandler.GetEmployeeDashboard)
+	dashboard.Get("/employee/summary", dashboardHandler.GetEmployeeSummary)
 }

@@ -19,319 +19,505 @@ type MealAllowanceHandler struct {
 }
 
 func NewMealAllowanceHandler(db *gorm.DB, cfg *config.Config) *MealAllowanceHandler {
-	return &MealAllowanceHandler{db: db, cfg: cfg}
+	return &MealAllowanceHandler{
+		db:  db,
+		cfg: cfg,
+	}
 }
 
-type ClaimMealAllowanceRequest struct {
-	AttendanceID uuid.UUID `json:"attendance_id" validate:"required"`
-	Notes        string    `json:"notes"`
+// GetMealAllowancePreview returns meal allowance preview for current user
+func (h *MealAllowanceHandler) GetMealAllowancePreview(c *fiber.Ctx) error {
+	userIDInterface := c.Locals("user_id")
+	if userIDInterface == nil {
+		return utils.ErrorResponse(c, fiber.StatusUnauthorized, "User not authenticated", nil)
+	}
+	userID, ok := userIDInterface.(uuid.UUID)
+	if !ok {
+		return utils.ErrorResponse(c, fiber.StatusUnauthorized, "Invalid user ID", nil)
+	}
+
+	// userID is already a UUID from context
+	userUUID := userID
+
+	// Get month and year from query params or use current
+	now := time.Now()
+	month := int(now.Month())
+	year := now.Year()
+
+	// Parse month and year from query parameters if provided
+	if monthStr := c.Query("month"); monthStr != "" {
+		if m, err := strconv.Atoi(monthStr); err == nil && m >= 1 && m <= 12 {
+			month = m
+		}
+	}
+	if yearStr := c.Query("year"); yearStr != "" {
+		if y, err := strconv.Atoi(yearStr); err == nil && y >= 2020 && y <= 2030 {
+			year = y
+		}
+	}
+
+	// Get meal allowance policy
+	var policy models.MealAllowancePolicy
+	if err := h.db.Where("is_active = true").First(&policy).Error; err != nil {
+		// Create default policy if not exists
+		policy = models.MealAllowancePolicy{
+			AmountPerDay:      15000,
+			MinWorkingHours:   8,
+			MaxClaimsPerMonth: 1,
+			IsActive:          true,
+		}
+		h.db.Create(&policy)
+	}
+
+	// Get attendance data for the month
+	totalAttendance, validAttendance := models.GetValidAttendanceCount(h.db, userUUID, month, year)
+
+	// Check if user can claim
+	canClaim := models.CanUserClaim(h.db, userUUID, month, year)
+
+	// Check if already claimed
+	var existingClaim models.MealAllowanceClaim
+	alreadyClaimed := false
+	claimStatus := ""
+	if err := h.db.Where("user_id = ? AND month = ? AND year = ?", userUUID, month, year).First(&existingClaim).Error; err == nil {
+		alreadyClaimed = true
+		claimStatus = existingClaim.Status
+	}
+
+	// Calculate total amount
+	totalAmount := float64(validAttendance) * policy.AmountPerDay
+
+	preview := models.MealAllowancePreview{
+		Month:           month,
+		Year:            year,
+		TotalAttendance: totalAttendance,
+		ValidAttendance: validAttendance,
+		AmountPerDay:    policy.AmountPerDay,
+		TotalAmount:     totalAmount,
+		CanClaim:        canClaim && validAttendance > 0,
+		AlreadyClaimed:  alreadyClaimed,
+		ClaimStatus:     claimStatus,
+	}
+
+	return c.JSON(fiber.Map{
+		"success": true,
+		"data":    preview,
+	})
 }
 
-type UpdateMealAllowanceRequest struct {
-	Status models.MealAllowanceStatus `json:"status" validate:"required"`
-	Notes  string                     `json:"notes"`
-}
-
-// ClaimMealAllowance - Employee claims meal allowance for valid attendance
+// ClaimMealAllowance creates a new meal allowance claim
 func (h *MealAllowanceHandler) ClaimMealAllowance(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(uuid.UUID)
+	userIDInterface := c.Locals("user_id")
+	if userIDInterface == nil {
+		return utils.ErrorResponse(c, fiber.StatusUnauthorized, "User not authenticated", nil)
+	}
+	userUUID, ok := userIDInterface.(uuid.UUID)
+	if !ok {
+		return utils.ErrorResponse(c, fiber.StatusUnauthorized, "Invalid user ID", nil)
+	}
 
-	var req ClaimMealAllowanceRequest
+	// Parse request body
+	var req struct {
+		Month int    `json:"month"`
+		Year  int    `json:"year"`
+		Notes string `json:"notes"`
+	}
+
 	if err := c.BodyParser(&req); err != nil {
 		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body", err)
 	}
 
-	// Check if attendance exists and belongs to the user
-	var attendance models.Attendance
-	if err := h.db.Where("id = ? AND user_id = ?", req.AttendanceID, userID).First(&attendance).Error; err != nil {
-		return utils.ErrorResponse(c, fiber.StatusNotFound, "Attendance record not found", err)
+	// Validate month and year
+	if req.Month < 1 || req.Month > 12 {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid month", nil)
+	}
+	if req.Year < 2020 || req.Year > 2030 {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid year", nil)
 	}
 
-	// Check if attendance is valid and has check-out time
-	if !attendance.IsValid || attendance.CheckOutTime == nil {
-		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Attendance is not eligible for meal allowance", nil)
+	// Check if user can claim
+	if !models.CanUserClaim(h.db, userUUID, req.Month, req.Year) {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "You have already claimed meal allowance for this month", nil)
 	}
 
-	// Check if meal allowance already claimed for this attendance
-	var existingClaim models.MealAllowance
-	if err := h.db.Where("attendance_id = ?", req.AttendanceID).First(&existingClaim).Error; err == nil {
-		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Meal allowance already claimed for this attendance", nil)
+	// Get meal allowance policy
+	var policy models.MealAllowancePolicy
+	if err := h.db.Where("is_active = true").First(&policy).Error; err != nil {
+		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Meal allowance policy not found", err)
 	}
 
-	// Check if user has already claimed meal allowance for this month
-	currentTime := time.Now()
-	startOfMonth := time.Date(currentTime.Year(), currentTime.Month(), 1, 0, 0, 0, 0, currentTime.Location())
-	endOfMonth := startOfMonth.AddDate(0, 1, 0).Add(-time.Nanosecond)
+	// Get attendance data
+	totalAttendance, validAttendance := models.GetValidAttendanceCount(h.db, userUUID, req.Month, req.Year)
 
-	var monthlyClaimCount int64
-	h.db.Model(&models.MealAllowance{}).Where("user_id = ? AND claim_date >= ? AND claim_date <= ?", userID, startOfMonth, endOfMonth).Count(&monthlyClaimCount)
-	if monthlyClaimCount > 0 {
-		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Meal allowance already claimed for this month", nil)
+	// Validate attendance
+	if validAttendance == 0 {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "No valid attendance found for this month", nil)
 	}
-
-	// Calculate meal allowance amount based on valid attendances in current month
-	var validAttendanceCount int64
-	h.db.Model(&models.Attendance{}).Where("user_id = ? AND is_valid = ? AND check_out_time IS NOT NULL AND check_in_time >= ? AND check_in_time <= ?", userID, true, startOfMonth, endOfMonth).Count(&validAttendanceCount)
-
-	// Calculate amount: 25,000 per valid attendance day
-	amount := float64(validAttendanceCount) * 25000
 
 	// Create meal allowance claim
-	mealAllowance := models.MealAllowance{
-		UserID:       userID,
-		AttendanceID: req.AttendanceID,
-		Amount:       amount,
-		Status:       models.MealAllowanceStatusPending,
-		ClaimDate:    time.Now(),
-		Notes:        req.Notes,
+	claim := models.MealAllowanceClaim{
+		UserID:          userUUID,
+		Month:           req.Month,
+		Year:            req.Year,
+		TotalAttendance: totalAttendance,
+		ValidAttendance: validAttendance,
+		AmountPerDay:    policy.AmountPerDay,
+		Status:          "pending",
+		ClaimDate:       time.Now(),
+		Notes:           req.Notes,
 	}
+	claim.CalculateTotalAmount()
 
-	if err := h.db.Create(&mealAllowance).Error; err != nil {
+	if err := h.db.Create(&claim).Error; err != nil {
 		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to create meal allowance claim", err)
 	}
 
-	// Load relations for response
-	h.db.Preload("User").Preload("Attendance").First(&mealAllowance, mealAllowance.ID)
+	// Load user data
+	if err := h.db.Preload("User").First(&claim, claim.ID).Error; err != nil {
+		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to load claim data", err)
+	}
 
-	return utils.SuccessResponse(c, "Meal allowance claimed successfully", mealAllowance)
+	return c.JSON(fiber.Map{
+		"success": true,
+		"message": "Meal allowance claim submitted successfully",
+		"data":    claim,
+	})
 }
 
-// GetMyMealAllowances - Get current user's meal allowance claims
+// GetMyMealAllowances returns current user's meal allowance claims
 func (h *MealAllowanceHandler) GetMyMealAllowances(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(uuid.UUID)
+	userIDInterface := c.Locals("user_id")
+	if userIDInterface == nil {
+		return utils.ErrorResponse(c, fiber.StatusUnauthorized, "User not authenticated", nil)
+	}
+	userUUID, ok := userIDInterface.(uuid.UUID)
+	if !ok {
+		return utils.ErrorResponse(c, fiber.StatusUnauthorized, "Invalid user ID", nil)
+	}
 
-	// Parse query parameters
+	// Get pagination parameters
 	page, _ := strconv.Atoi(c.Query("page", "1"))
 	limit, _ := strconv.Atoi(c.Query("limit", "10"))
-	status := c.Query("status")
-	month := c.Query("month")
-	year := c.Query("year")
-
 	offset := (page - 1) * limit
 
+	// Get filter parameters
+	status := c.Query("status")
+	yearStr := c.Query("year")
+
 	// Build query
-	query := h.db.Where("user_id = ?", userID)
+	query := h.db.Model(&models.MealAllowanceClaim{}).Where("user_id = ?", userUUID)
 
 	if status != "" {
 		query = query.Where("status = ?", status)
 	}
-
-	if month != "" && year != "" {
-		query = query.Where("EXTRACT(MONTH FROM claim_date) = ? AND EXTRACT(YEAR FROM claim_date) = ?", month, year)
-	} else if year != "" {
-		query = query.Where("EXTRACT(YEAR FROM claim_date) = ?", year)
-	}
-
-	// Get total count
-	var total int64
-	query.Model(&models.MealAllowance{}).Count(&total)
-
-	// Get records with pagination
-	var mealAllowances []models.MealAllowance
-	if err := query.Preload("User").Preload("Attendance").Preload("Approver").
-		Order("claim_date DESC").Offset(offset).Limit(limit).Find(&mealAllowances).Error; err != nil {
-		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch meal allowances", err)
-	}
-
-	// Calculate total pages
-	totalPages := int((total + int64(limit) - 1) / int64(limit))
-
-	meta := utils.PaginationMeta{
-		Page:       page,
-		Limit:      limit,
-		Total:      total,
-		TotalPages: totalPages,
-	}
-
-	return utils.PaginatedSuccessResponse(c, "Meal allowances retrieved successfully", mealAllowances, meta)
-}
-
-// GetAllMealAllowances - Admin gets all meal allowance claims
-func (h *MealAllowanceHandler) GetAllMealAllowances(c *fiber.Ctx) error {
-	// Parse query parameters
-	page, _ := strconv.Atoi(c.Query("page", "1"))
-	limit, _ := strconv.Atoi(c.Query("limit", "10"))
-	status := c.Query("status")
-	userID := c.Query("user_id")
-	month := c.Query("month")
-	year := c.Query("year")
-
-	offset := (page - 1) * limit
-
-	// Build query
-	query := h.db.Model(&models.MealAllowance{})
-
-	if status != "" {
-		query = query.Where("status = ?", status)
-	}
-
-	if userID != "" {
-		query = query.Where("user_id = ?", userID)
-	}
-
-	if month != "" && year != "" {
-		query = query.Where("EXTRACT(MONTH FROM claim_date) = ? AND EXTRACT(YEAR FROM claim_date) = ?", month, year)
-	} else if year != "" {
-		query = query.Where("EXTRACT(YEAR FROM claim_date) = ?", year)
+	if yearStr != "" {
+		if year, err := strconv.Atoi(yearStr); err == nil {
+			query = query.Where("year = ?", year)
+		}
 	}
 
 	// Get total count
 	var total int64
 	query.Count(&total)
 
-	// Get records with pagination
-	var mealAllowances []models.MealAllowance
-	if err := query.Preload("User").Preload("Attendance").Preload("Approver").
-		Order("claim_date DESC").Offset(offset).Limit(limit).Find(&mealAllowances).Error; err != nil {
-		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch meal allowances", err)
+	// Get claims with pagination
+	var claims []models.MealAllowanceClaim
+	if err := query.Preload("User").Preload("Approver").Order("created_at DESC").Limit(limit).Offset(offset).Find(&claims).Error; err != nil {
+		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch meal allowance claims", err)
 	}
 
-	// Calculate total pages
-	totalPages := int((total + int64(limit) - 1) / int64(limit))
-
-	meta := utils.PaginationMeta{
-		Page:       page,
-		Limit:      limit,
-		Total:      total,
-		TotalPages: totalPages,
-	}
-
-	return utils.PaginatedSuccessResponse(c, "Meal allowances retrieved successfully", mealAllowances, meta)
+	return c.JSON(fiber.Map{
+		"success": true,
+		"data": fiber.Map{
+			"claims": claims,
+			"pagination": fiber.Map{
+				"page":  page,
+				"limit": limit,
+				"total": total,
+				"pages": (total + int64(limit) - 1) / int64(limit),
+			},
+		},
+	})
 }
 
-// UpdateMealAllowanceStatus - Admin approves/rejects meal allowance
-func (h *MealAllowanceHandler) UpdateMealAllowanceStatus(c *fiber.Ctx) error {
-	adminID := c.Locals("user_id").(uuid.UUID)
-	mealAllowanceID := c.Params("id")
+// GetAllMealAllowances returns all meal allowance claims (admin only)
+func (h *MealAllowanceHandler) GetAllMealAllowances(c *fiber.Ctx) error {
+	// Get pagination parameters
+	page, _ := strconv.Atoi(c.Query("page", "1"))
+	limit, _ := strconv.Atoi(c.Query("limit", "10"))
+	offset := (page - 1) * limit
 
-	var req UpdateMealAllowanceRequest
+	// Get filter parameters
+	status := c.Query("status")
+	yearStr := c.Query("year")
+	monthStr := c.Query("month")
+	userIDStr := c.Query("user_id")
+
+	// Build query
+	query := h.db.Model(&models.MealAllowanceClaim{})
+
+	if status != "" {
+		query = query.Where("status = ?", status)
+	}
+	if yearStr != "" {
+		if year, err := strconv.Atoi(yearStr); err == nil {
+			query = query.Where("year = ?", year)
+		}
+	}
+	if monthStr != "" {
+		if month, err := strconv.Atoi(monthStr); err == nil {
+			query = query.Where("month = ?", month)
+		}
+	}
+	if userIDStr != "" {
+		if userUUID, err := uuid.Parse(userIDStr); err == nil {
+			query = query.Where("user_id = ?", userUUID)
+		}
+	}
+
+	// Get total count
+	var total int64
+	query.Count(&total)
+
+	// Get claims with pagination
+	var claims []models.MealAllowanceClaim
+	if err := query.Preload("User").Preload("Approver").Order("created_at DESC").Limit(limit).Offset(offset).Find(&claims).Error; err != nil {
+		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch meal allowance claims", err)
+	}
+
+	return c.JSON(fiber.Map{
+		"success": true,
+		"data": fiber.Map{
+			"claims": claims,
+			"pagination": fiber.Map{
+				"page":  page,
+				"limit": limit,
+				"total": total,
+				"pages": (total + int64(limit) - 1) / int64(limit),
+			},
+		},
+	})
+}
+
+// ApproveMealAllowance approves a meal allowance claim (admin only)
+func (h *MealAllowanceHandler) ApproveMealAllowance(c *fiber.Ctx) error {
+	claimID := c.Params("id")
+	claimUUID, err := uuid.Parse(claimID)
+	if err != nil {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid claim ID", err)
+	}
+
+	// Get approver ID
+	approverIDInterface := c.Locals("user_id")
+	if approverIDInterface == nil {
+		return utils.ErrorResponse(c, fiber.StatusUnauthorized, "User not authenticated", nil)
+	}
+	approverUUID, ok := approverIDInterface.(uuid.UUID)
+	if !ok {
+		return utils.ErrorResponse(c, fiber.StatusUnauthorized, "Invalid user ID", nil)
+	}
+
+	// Find the claim
+	var claim models.MealAllowanceClaim
+	if err := h.db.First(&claim, claimUUID).Error; err != nil {
+		return utils.ErrorResponse(c, fiber.StatusNotFound, "Meal allowance claim not found", err)
+	}
+
+	// Check if already processed
+	if claim.Status != "pending" {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Claim has already been processed", nil)
+	}
+
+	// Update claim status
+	now := time.Now()
+	claim.Status = "approved"
+	claim.ApprovedBy = &approverUUID
+	claim.ApprovedAt = &now
+
+	if err := h.db.Save(&claim).Error; err != nil {
+		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to approve meal allowance claim", err)
+	}
+
+	// Load related data
+	if err := h.db.Preload("User").Preload("Approver").First(&claim, claim.ID).Error; err != nil {
+		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to load claim data", err)
+	}
+
+	return c.JSON(fiber.Map{
+		"success": true,
+		"message": "Meal allowance claim approved successfully",
+		"data":    claim,
+	})
+}
+
+// RejectMealAllowance rejects a meal allowance claim (admin only)
+func (h *MealAllowanceHandler) RejectMealAllowance(c *fiber.Ctx) error {
+	claimID := c.Params("id")
+	claimUUID, err := uuid.Parse(claimID)
+	if err != nil {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid claim ID", err)
+	}
+
+	// Parse request body
+	var req struct {
+		Reason string `json:"reason"`
+	}
 	if err := c.BodyParser(&req); err != nil {
 		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body", err)
 	}
 
-	// Find meal allowance
-	var mealAllowance models.MealAllowance
-	if err := h.db.First(&mealAllowance, "id = ?", mealAllowanceID).Error; err != nil {
-		return utils.ErrorResponse(c, fiber.StatusNotFound, "Meal allowance not found", err)
+	// Find the claim
+	var claim models.MealAllowanceClaim
+	if err := h.db.First(&claim, claimUUID).Error; err != nil {
+		return utils.ErrorResponse(c, fiber.StatusNotFound, "Meal allowance claim not found", err)
 	}
 
-	// Update status
-	updateData := map[string]interface{}{
-		"status": req.Status,
-		"notes":  req.Notes,
+	// Check if already processed
+	if claim.Status != "pending" {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Claim has already been processed", nil)
 	}
 
-	if req.Status == models.MealAllowanceStatusApproved || req.Status == models.MealAllowanceStatusRejected {
-		updateData["approved_by"] = adminID
-		updateData["approved_at"] = time.Now()
+	// Update claim status
+	claim.Status = "rejected"
+	claim.RejectionReason = req.Reason
+
+	if err := h.db.Save(&claim).Error; err != nil {
+		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to reject meal allowance claim", err)
 	}
 
-	if req.Status == models.MealAllowanceStatusPaid {
-		updateData["paid_at"] = time.Now()
+	// Load related data
+	if err := h.db.Preload("User").First(&claim, claim.ID).Error; err != nil {
+		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to load claim data", err)
 	}
 
-	if err := h.db.Model(&mealAllowance).Updates(updateData).Error; err != nil {
-		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to update meal allowance", err)
-	}
-
-	// Load updated record with relations
-	h.db.Preload("User").Preload("Attendance").Preload("Approver").First(&mealAllowance, mealAllowance.ID)
-
-	return utils.SuccessResponse(c, "Meal allowance updated successfully", mealAllowance)
+	return c.JSON(fiber.Map{
+		"success": true,
+		"message": "Meal allowance claim rejected successfully",
+		"data":    claim,
+	})
 }
 
-// GetMealAllowanceStats - Get statistics for meal allowances
-func (h *MealAllowanceHandler) GetMealAllowanceStats(c *fiber.Ctx) error {
-	userID := c.Query("user_id")
-	month := c.Query("month")
-	year := c.Query("year")
-
-	// Build base query
-	query := h.db.Model(&models.MealAllowance{})
-
-	if userID != "" {
-		query = query.Where("user_id = ?", userID)
+// GetMealAllowancePolicy returns the current meal allowance policy
+func (h *MealAllowanceHandler) GetMealAllowancePolicy(c *fiber.Ctx) error {
+	var policy models.MealAllowancePolicy
+	if err := h.db.Where("is_active = true").First(&policy).Error; err != nil {
+		// Create default policy if not exists
+		policy = models.MealAllowancePolicy{
+			AmountPerDay:      15000,
+			MinWorkingHours:   8,
+			MaxClaimsPerMonth: 1,
+			IsActive:          true,
+		}
+		h.db.Create(&policy)
 	}
 
-	if month != "" && year != "" {
-		query = query.Where("EXTRACT(MONTH FROM claim_date) = ? AND EXTRACT(YEAR FROM claim_date) = ?", month, year)
-	} else if year != "" {
-		query = query.Where("EXTRACT(YEAR FROM claim_date) = ?", year)
+	return c.JSON(fiber.Map{
+		"success": true,
+		"data":    policy,
+	})
+}
+
+// UpdateMealAllowancePolicy updates the meal allowance policy (admin only)
+func (h *MealAllowanceHandler) UpdateMealAllowancePolicy(c *fiber.Ctx) error {
+	var req models.MealAllowancePolicy
+	if err := c.BodyParser(&req); err != nil {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid request body", err)
+	}
+
+	// Validate input
+	if req.AmountPerDay <= 0 {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Amount per day must be greater than 0", nil)
+	}
+	if req.MinWorkingHours <= 0 {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Minimum working hours must be greater than 0", nil)
+	}
+	if req.MaxClaimsPerMonth <= 0 {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Maximum claims per month must be greater than 0", nil)
+	}
+
+	// Get current policy
+	var policy models.MealAllowancePolicy
+	if err := h.db.Where("is_active = true").First(&policy).Error; err != nil {
+		// Create new policy if not exists
+		policy = models.MealAllowancePolicy{
+			AmountPerDay:      req.AmountPerDay,
+			MinWorkingHours:   req.MinWorkingHours,
+			MaxClaimsPerMonth: req.MaxClaimsPerMonth,
+			IsActive:          true,
+		}
+		if err := h.db.Create(&policy).Error; err != nil {
+			return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to create meal allowance policy", err)
+		}
+	} else {
+		// Update existing policy
+		policy.AmountPerDay = req.AmountPerDay
+		policy.MinWorkingHours = req.MinWorkingHours
+		policy.MaxClaimsPerMonth = req.MaxClaimsPerMonth
+		if err := h.db.Save(&policy).Error; err != nil {
+			return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to update meal allowance policy", err)
+		}
+	}
+
+	return c.JSON(fiber.Map{
+		"success": true,
+		"message": "Meal allowance policy updated successfully",
+		"data":    policy,
+	})
+}
+
+// GetMealAllowanceStats returns statistics for meal allowances
+func (h *MealAllowanceHandler) GetMealAllowanceStats(c *fiber.Ctx) error {
+	// Parse month and year from query parameters
+	now := time.Now()
+	month := int(now.Month())
+	year := now.Year()
+
+	if monthStr := c.Query("month"); monthStr != "" {
+		if m, err := strconv.Atoi(monthStr); err == nil && m >= 1 && m <= 12 {
+			month = m
+		}
+	}
+	if yearStr := c.Query("year"); yearStr != "" {
+		if y, err := strconv.Atoi(yearStr); err == nil && y >= 2020 {
+			year = y
+		}
 	}
 
 	// Get statistics
-	// Use individual variables instead of map for counting
-	var totalClaims, pendingClaims, approvedClaims, rejectedClaims, paidClaims int64
-	var totalAmount, paidAmount float64
+	var totalClaims int64
+	var approvedClaims int64
+	var pendingClaims int64
+	var rejectedClaims int64
+	var totalAmount float64
 
-	// Total claims
-	query.Count(&totalClaims)
+	// Count total claims for the month/year
+	h.db.Model(&models.MealAllowanceClaim{}).Where("month = ? AND year = ?", month, year).Count(&totalClaims)
 
-	// Claims by status
-	query.Where("status = ?", models.MealAllowanceStatusPending).Count(&pendingClaims)
-	query.Where("status = ?", models.MealAllowanceStatusApproved).Count(&approvedClaims)
-	query.Where("status = ?", models.MealAllowanceStatusRejected).Count(&rejectedClaims)
-	query.Where("status = ?", models.MealAllowanceStatusPaid).Count(&paidClaims)
+	// Count approved claims
+	h.db.Model(&models.MealAllowanceClaim{}).Where("month = ? AND year = ? AND status = ?", month, year, "approved").Count(&approvedClaims)
 
-	// Total amount
-	query.Select("COALESCE(SUM(amount), 0)").Scan(&totalAmount)
+	// Count pending claims
+	h.db.Model(&models.MealAllowanceClaim{}).Where("month = ? AND year = ? AND status = ?", month, year, "pending").Count(&pendingClaims)
 
-	// Paid amount
-	query.Where("status = ?", models.MealAllowanceStatusPaid).Select("COALESCE(SUM(amount), 0)").Scan(&paidAmount)
+	// Count rejected claims
+	h.db.Model(&models.MealAllowanceClaim{}).Where("month = ? AND year = ? AND status = ?", month, year, "rejected").Count(&rejectedClaims)
 
-	// Create stats map
-	stats := map[string]interface{}{
+	// Calculate total amount for approved claims
+	h.db.Model(&models.MealAllowanceClaim{}).Where("month = ? AND year = ? AND status = ?", month, year, "approved").Select("COALESCE(SUM(amount), 0)").Scan(&totalAmount)
+
+	stats := fiber.Map{
+		"month":          month,
+		"year":           year,
 		"total_claims":   totalClaims,
-		"pending_claims": pendingClaims,
 		"approved_claims": approvedClaims,
+		"pending_claims":  pendingClaims,
 		"rejected_claims": rejectedClaims,
-		"paid_claims":    paidClaims,
 		"total_amount":   totalAmount,
-		"paid_amount":    paidAmount,
 	}
 
-	return utils.SuccessResponse(c, "Meal allowance statistics retrieved successfully", stats)
-}
-
-// GetMealAllowancePreview - Get preview of meal allowance for current month
-func (h *MealAllowanceHandler) GetMealAllowancePreview(c *fiber.Ctx) error {
-	userID := c.Locals("user_id").(uuid.UUID)
-
-	// Get current month range
-	currentTime := time.Now()
-	startOfMonth := time.Date(currentTime.Year(), currentTime.Month(), 1, 0, 0, 0, 0, currentTime.Location())
-	endOfMonth := startOfMonth.AddDate(0, 1, 0).Add(-time.Nanosecond)
-
-	// Count valid attendances in current month
-	var validAttendanceCount int64
-	h.db.Model(&models.Attendance{}).Where("user_id = ? AND is_valid = ? AND check_out_time IS NOT NULL AND check_in_time >= ? AND check_in_time <= ?", userID, true, startOfMonth, endOfMonth).Count(&validAttendanceCount)
-
-	// Calculate potential amount
-	potentialAmount := float64(validAttendanceCount) * 25000
-
-	// Check if already claimed this month
-	var existingClaim models.MealAllowance
-	alreadyClaimed := h.db.Where("user_id = ? AND claim_date >= ? AND claim_date <= ?", userID, startOfMonth, endOfMonth).First(&existingClaim).Error == nil
-
-	// Get list of valid attendances for this month
-	var attendances []models.Attendance
-	h.db.Where("user_id = ? AND is_valid = ? AND check_out_time IS NOT NULL AND check_in_time >= ? AND check_in_time <= ?", userID, true, startOfMonth, endOfMonth).Order("check_in_time DESC").Find(&attendances)
-
-	preview := map[string]interface{}{
-		"month":              currentTime.Format("January 2006"),
-		"valid_days":         validAttendanceCount,
-		"rate_per_day":       25000,
-		"potential_amount":   potentialAmount,
-		"already_claimed":    alreadyClaimed,
-		"can_claim":          !alreadyClaimed && validAttendanceCount > 0,
-		"attendances":        attendances,
-	}
-
-	if alreadyClaimed {
-		preview["claimed_amount"] = existingClaim.Amount
-		preview["claim_status"] = existingClaim.Status
-		preview["claim_date"] = existingClaim.ClaimDate
-	}
-
-	return utils.SuccessResponse(c, "Meal allowance preview retrieved successfully", preview)
+	return c.JSON(fiber.Map{
+		"success": true,
+		"message": "Meal allowance statistics retrieved successfully",
+		"data":    stats,
+	})
 }

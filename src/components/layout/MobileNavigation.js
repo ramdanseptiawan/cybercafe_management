@@ -1,4 +1,4 @@
-import { Coffee, Users, LogOut, Monitor, Settings, Menu as MenuIcon, Package, ShoppingCart, FileText, DollarSign, TrendingUp, Clipboard } from 'lucide-react';
+import { Coffee, Users, LogOut, Monitor, Settings, Menu as MenuIcon, Package, ShoppingCart, FileText, DollarSign, TrendingUp, Clipboard, Eye } from 'lucide-react';
 
 const MobileNavigation = ({ mobileMenuOpen, setMobileMenuOpen, activeTab, setActiveTab, user, logout, isAdmin }) => {
   const userRole = user?.role?.name; // Mengambil nama role dari object role
@@ -18,7 +18,8 @@ const MobileNavigation = ({ mobileMenuOpen, setMobileMenuOpen, activeTab, setAct
       { id: 'transactions', label: 'Finance', icon: DollarSign, roles: ['admin'] },
       { id: 'reports', label: 'Reports', icon: FileText, roles: ['admin'] },
       { id: 'attendance', label: 'Attendance', icon: Clipboard, roles: ['admin'] },
-      { id: 'meal-allowance-management', label: 'Meal Allowance', icon: DollarSign, roles: ['admin'] },
+
+      { id: 'management-allowance-meal', label: 'Management Allowance Meal', icon: Eye, roles: ['admin'] },
       { id: 'settings', label: 'Settings', icon: Settings, roles: ['admin'] }
     ];
     

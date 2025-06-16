@@ -155,15 +155,16 @@ const Sidebar = ({ user, logout, isAdmin, activeTab, setActiveTab, sidebarCollap
               <Clipboard className="w-5 h-5 mr-3" />
               {!sidebarCollapsed && <span>Staff Attendance</span>}
             </button>
+
             <button 
-              onClick={() => setActiveTab('meal-allowance-management')}
+              onClick={() => setActiveTab('management-allowance-meal')}
               className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'px-4'} py-3 w-full text-left ${
-                activeTab === 'meal-allowance-management' ? 'bg-gray-700' : 'hover:bg-gray-700'
+                activeTab === 'management-allowance-meal' ? 'bg-gray-700' : 'hover:bg-gray-700'
               }`}
-              title="Meal Allowance Management"
+              title="Management Allowance Meal"
             >
-              <DollarSign className="w-5 h-5 mr-3" />
-              {!sidebarCollapsed && <span>Meal Allowance</span>}
+              <Eye className="w-5 h-5 mr-3" />
+              {!sidebarCollapsed && <span>Management Allowance Meal</span>}
             </button>
             
             {/* Settings */}

@@ -9,8 +9,9 @@ import SessionManagement from '../sessions/SessionManagement';
 import CustomerManagement from '../customers/CustomerManagement';
 import KitchenManagement from '../kitchen/KitchenManagement';
 import AttendanceManagement from '../attendance/AttendanceManagement';
-import MealAllowance from '../attendance/MealAllowance';
+import MealAllowanceManagementAdmin from '../attendance/MealAllowanceManagementAdmin';
 import MealAllowanceManagement from '../attendance/MealAllowanceManagement';
+import MealAllowance from '../attendance/MealAllowance';
 import StaffManagement from '../settings/StaffManagement';
 import AuditLogs from '../settings/AuditLogs';
 import IndividualAttendance from '../attendance/IndividualAttendance';
@@ -134,11 +135,7 @@ const TabContent = ({ activeTab, settingsTab, setSettingsTab, state, handlers, i
         ) : (
           <EmployeeDashboard 
             user={user}
-            orders={orders}
-            activeSessions={activeSessions}
-            computers={computers}
             setActiveTab={handlers.setActiveTab}
-            todayAttendance={null}
           />
         )
       )}
@@ -265,6 +262,12 @@ const TabContent = ({ activeTab, settingsTab, setSettingsTab, state, handlers, i
               role: userRole
             }}
           />
+        ) : <AccessDenied />
+      )}
+      
+      {activeTab === 'management-allowance-meal' && (
+        hasAccess('admin') ? (
+          <MealAllowanceManagementAdmin />
         ) : <AccessDenied />
       )}
       

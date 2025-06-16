@@ -49,7 +49,8 @@ func autoMigrate(db *gorm.DB) error {
 		&models.AuditLog{},
 		&models.Attendance{},
 		&models.Location{},
-		&models.MealAllowance{},
+		&models.MealAllowancePolicy{},
+		&models.MealAllowanceClaim{},
 	)
 }
 

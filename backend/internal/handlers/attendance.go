@@ -368,3 +368,136 @@ func (h *AttendanceHandler) UpdateAttendance(c *fiber.Ctx) error {
 	return utils.SuccessResponse(c, "Attendance record updated successfully", attendance)
 }
 
+// GetMealAllowanceManagement returns meal allowance management data for admin
+func (h *AttendanceHandler) GetMealAllowanceManagement(c *fiber.Ctx) error {
+	month := c.QueryInt("month", int(time.Now().Month()))
+	year := c.QueryInt("year", time.Now().Year())
+
+	// Validate month and year
+	if month < 1 || month > 12 {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid month", nil)
+	}
+	if year < 2020 || year > 2030 {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid year", nil)
+	}
+
+	// Get all users with employee role
+	var users []models.User
+	if err := h.db.Joins("JOIN roles ON users.role_id = roles.id").
+		Where("roles.name = ?", "employee").
+		Find(&users).Error; err != nil {
+		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to fetch employees", err)
+	}
+
+	type EmployeeData struct {
+		UserID              string  `json:"user_id"`
+		Name                string  `json:"name"`
+		TotalAttendance     int     `json:"total_attendance"`
+		ValidAttendance     int     `json:"valid_attendance"`
+		TotalMealAllowance  float64 `json:"total_meal_allowance"`
+		ClaimStatus         *string `json:"claim_status"`
+		ClaimDate          *time.Time `json:"claim_date"`
+	}
+
+	var employees []EmployeeData
+	totalAllowance := 0.0
+	claimedCount := 0
+	unclaimedCount := 0
+
+	for _, user := range users {
+		// Count total attendance for the month
+		var totalAttendance int64
+		h.db.Model(&models.Attendance{}).
+			Where("user_id = ? AND EXTRACT(MONTH FROM check_in_time) = ? AND EXTRACT(YEAR FROM check_in_time) = ?",
+				user.ID, month, year).
+			Count(&totalAttendance)
+
+		// Count valid attendance (is_valid = true)
+		var validAttendance int64
+		h.db.Model(&models.Attendance{}).
+			Where("user_id = ? AND EXTRACT(MONTH FROM check_in_time) = ? AND EXTRACT(YEAR FROM check_in_time) = ? AND is_valid = ?",
+				user.ID, month, year, true).
+			Count(&validAttendance)
+
+		// Calculate meal allowance (15000 per valid attendance)
+		mealAllowance := float64(validAttendance) * 15000
+
+		// Check if user has claimed meal allowance for this month
+		var claim models.MealAllowanceClaim
+		claimErr := h.db.Where("user_id = ? AND EXTRACT(MONTH FROM claim_date) = ? AND EXTRACT(YEAR FROM claim_date) = ?",
+			user.ID, month, year).First(&claim).Error
+
+		var claimStatus *string
+		var claimDate *time.Time
+		if claimErr == nil {
+			claimStatus = &claim.Status
+			claimDate = &claim.ClaimDate
+			claimedCount++
+		} else {
+			unclaimedCount++
+		}
+
+		employees = append(employees, EmployeeData{
+			UserID:             user.ID.String(),
+			Name:               user.Name,
+			TotalAttendance:    int(totalAttendance),
+			ValidAttendance:    int(validAttendance),
+			TotalMealAllowance: mealAllowance,
+			ClaimStatus:        claimStatus,
+			ClaimDate:         claimDate,
+		})
+
+		totalAllowance += mealAllowance
+	}
+
+	response := map[string]interface{}{
+		"summary": map[string]interface{}{
+			"total_employees":  len(users),
+			"total_allowance":  totalAllowance,
+			"claimed_count":    claimedCount,
+			"unclaimed_count":  unclaimedCount,
+		},
+		"employees": employees,
+	}
+
+	return utils.SuccessResponse(c, "Meal allowance management data retrieved successfully", response)
+}
+
+// GetEmployeeAttendanceDetail retrieves detailed attendance records for a specific employee
+func (h *AttendanceHandler) GetEmployeeAttendanceDetail(c *fiber.Ctx) error {
+	userID := c.Params("userId")
+	if userID == "" {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "User ID is required", nil)
+	}
+
+	// Parse month and year from query parameters
+	monthStr := c.Query("month")
+	yearStr := c.Query("year")
+
+	if monthStr == "" || yearStr == "" {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Month and year are required", nil)
+	}
+
+	month, err := strconv.Atoi(monthStr)
+	if err != nil || month < 1 || month > 12 {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid month", nil)
+	}
+
+	year, err := strconv.Atoi(yearStr)
+	if err != nil || year < 2000 {
+		return utils.ErrorResponse(c, fiber.StatusBadRequest, "Invalid year", nil)
+	}
+
+	// Get attendance records for the specific user, month, and year
+	var attendances []models.Attendance
+	startDate := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
+	endDate := startDate.AddDate(0, 1, -1).Add(23*time.Hour + 59*time.Minute + 59*time.Second)
+
+	err = h.db.Where("user_id = ? AND check_in_time BETWEEN ? AND ?", userID, startDate, endDate).Find(&attendances).Error
+	if err != nil {
+		return utils.ErrorResponse(c, fiber.StatusInternalServerError, "Failed to retrieve attendance records", err)
+	}
+
+	return utils.SuccessResponse(c, "Employee attendance details retrieved successfully", attendances)
+}
+
