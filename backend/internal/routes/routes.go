@@ -88,6 +88,8 @@ func Setup(app *fiber.App, db *gorm.DB, cfg *config.Config) {
 	mealAllowance.Get("/all", mealAllowanceHandler.GetAllMealAllowances)
 	mealAllowance.Put("/:id/approve", mealAllowanceHandler.ApproveMealAllowance)
 	mealAllowance.Put("/:id/reject", mealAllowanceHandler.RejectMealAllowance)
+	mealAllowance.Put("/:id/claim-status", mealAllowanceHandler.UpdateMealAllowanceClaimStatus)
+	mealAllowance.Post("/direct-approve", mealAllowanceHandler.DirectApproveMealAllowance)
 	mealAllowance.Get("/policy", mealAllowanceHandler.GetMealAllowancePolicy)
 	mealAllowance.Put("/policy", mealAllowanceHandler.UpdateMealAllowancePolicy)
 	mealAllowance.Get("/management", attendanceHandler.GetMealAllowanceManagement)

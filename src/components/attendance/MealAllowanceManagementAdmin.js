@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Users, DollarSign, Download, Search, Filter, Eye, CheckCircle, XCircle, Clock, Check, X } from 'lucide-react';
-import { getMealAllowanceManagement, getEmployeeAttendanceDetail, getAllMealAllowances, updateMealAllowanceStatus } from '../../services/mealAllowanceService';
+import { getMealAllowanceManagement, getEmployeeAttendanceDetail, getAllMealAllowances, updateMealAllowanceStatus, directApproveMealAllowance } from '../../services/mealAllowanceService';
 
 const MealAllowanceManagementAdmin = () => {
   const [data, setData] = useState(null);
@@ -90,6 +90,100 @@ const MealAllowanceManagementAdmin = () => {
     }
   };
 
+  const handleMarkAsClaimed = async (claimId) => {
+    if (!confirm('Apakah Anda yakin ingin menandai klaim ini sebagai sudah diklaim?')) {
+      return;
+    }
+    
+    try {
+      setUpdating(claimId);
+      await updateMealAllowanceStatus(claimId, 'claimed');
+      
+      // Update claims state
+      setClaims((claims || []).map(claim => 
+        claim.id === claimId 
+          ? { ...claim, status: 'claimed', updated_at: new Date().toISOString() }
+          : claim
+      ));
+      
+      // Refresh data
+      await fetchData();
+    } catch (err) {
+      console.error('Error marking claim as claimed:', err);
+      alert('Gagal menandai klaim sebagai sudah diklaim');
+    } finally {
+      setUpdating(null);
+    }
+  };
+
+  const handleDirectApprove = async (employee) => {
+    if (!window.confirm(`Apakah Anda yakin ingin menyetujui langsung uang makan untuk ${employee.name}?`)) {
+      return;
+    }
+
+    setUpdating(employee.user_id);
+    try {
+      const claimData = {
+        user_id: employee.user_id,
+        month: filters.month,
+        year: filters.year,
+        amount: employee.total_meal_allowance
+      };
+      
+       // Use the meal allowance service to create direct approval
+         await directApproveMealAllowance(claimData);
+       
+       // Refresh data
+       await fetchData();
+       alert('Uang makan berhasil disetujui langsung!');
+     } catch (error) {
+       console.error('Error approving meal allowance:', error);
+       alert('Gagal menyetujui uang makan. Silakan coba lagi.');
+     } finally {
+       setUpdating(null);
+     }
+   };
+
+  const handleDirectClaim = async (employee) => {
+    if (!window.confirm(`Apakah Anda yakin ingin menandai uang makan ${employee.name} sebagai sudah diklaim?`)) {
+      return;
+    }
+
+    setUpdating(employee.user_id);
+    try {
+      // Find the approved claim for this employee
+      const approvedClaim = claims.find(claim => 
+        claim.user_id === employee.user_id && 
+        claim.status === 'approved' &&
+        claim.month === selectedMonth &&
+        claim.year === selectedYear
+      );
+
+      if (!approvedClaim) {
+        alert('Tidak ditemukan klaim yang disetujui untuk pegawai ini.');
+        return;
+      }
+
+      await updateMealAllowanceStatus(approvedClaim.id, 'claimed');
+      
+      // Update claims state
+      setClaims((claims || []).map(claim => 
+        claim.id === approvedClaim.id 
+          ? { ...claim, status: 'claimed', updated_at: new Date().toISOString() }
+          : claim
+      ));
+      
+      // Refresh data
+      await fetchData();
+      alert('Status berhasil diubah menjadi sudah diklaim!');
+    } catch (error) {
+      console.error('Error marking as claimed:', error);
+      alert('Gagal mengubah status. Silakan coba lagi.');
+    } finally {
+      setUpdating(null);
+    }
+  };
+
   const handleExportCSV = () => {
     if (!data || !data.employees) return;
 
@@ -138,6 +232,7 @@ const MealAllowanceManagementAdmin = () => {
     if (status === 'approved') return <CheckCircle className="w-4 h-4 text-green-500" />;
     if (status === 'rejected') return <XCircle className="w-4 h-4 text-red-500" />;
     if (status === 'pending') return <Clock className="w-4 h-4 text-yellow-500" />;
+    if (status === 'claimed') return <CheckCircle className="w-4 h-4 text-blue-500" />;
     return <XCircle className="w-4 h-4 text-gray-400" />;
   };
 
@@ -145,6 +240,7 @@ const MealAllowanceManagementAdmin = () => {
     if (status === 'approved') return 'Disetujui';
     if (status === 'rejected') return 'Ditolak';
     if (status === 'pending') return 'Menunggu';
+    if (status === 'claimed') return 'Sudah Klaim';
     return 'Belum Klaim';
   };
 
@@ -392,13 +488,46 @@ const MealAllowanceManagementAdmin = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <button
-                        onClick={() => handleViewAttendanceDetail(employee)}
-                        className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                      >
-                        <Eye className="w-3 h-3 mr-1" />
-                        Detail Kehadiran
-                      </button>
+                      <div className="flex flex-col space-y-1">
+                        <button
+                          onClick={() => handleViewAttendanceDetail(employee)}
+                          className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        >
+                          <Eye className="w-3 h-3 mr-1" />
+                          Detail Kehadiran
+                        </button>
+                        
+                        {/* Admin Action Buttons */}
+                         {(!employee.claim_status || employee.claim_status === 'pending') && (
+                           <button
+                             onClick={() => handleDirectApprove(employee)}
+                             disabled={updating === employee.user_id}
+                             className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                           >
+                             {updating === employee.user_id ? (
+                               <div className="w-3 h-3 mr-1 border border-green-600 border-t-transparent rounded-full animate-spin" />
+                             ) : (
+                               <CheckCircle className="w-3 h-3 mr-1" />
+                             )}
+                             Setujui Langsung
+                           </button>
+                         )}
+                         
+                         {employee.claim_status === 'approved' && (
+                           <button
+                             onClick={() => handleDirectClaim(employee)}
+                             disabled={updating === employee.user_id}
+                             className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                           >
+                             {updating === employee.user_id ? (
+                               <div className="w-3 h-3 mr-1 border border-blue-600 border-t-transparent rounded-full animate-spin" />
+                             ) : (
+                               <Check className="w-3 h-3 mr-1" />
+                             )}
+                             Tandai Sudah Klaim
+                           </button>
+                         )}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -685,6 +814,21 @@ const MealAllowanceManagementAdmin = () => {
                                     )}
                                   </button>
                                 </div>
+                              ) : claim.status === 'approved' ? (
+                                <button
+                                  onClick={() => handleMarkAsClaimed(claim.id)}
+                                  disabled={updating === claim.id}
+                                  className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                                >
+                                  {updating === claim.id ? (
+                                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+                                  ) : (
+                                    <>
+                                      <CheckCircle className="w-3 h-3 mr-1" />
+                                      Sudah Klaim
+                                    </>
+                                  )}
+                                </button>
                               ) : (
                                 <span className="text-sm text-gray-500">-</span>
                               )}

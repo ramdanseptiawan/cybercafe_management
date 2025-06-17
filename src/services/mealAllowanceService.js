@@ -125,12 +125,34 @@ export const getMealAllowanceStats = async (month, year) => {
 
 export const updateMealAllowanceStatus = async (id, status, reason = null) => {
   try {
-    const endpoint = status === 'approved' ? 'approve' : 'reject';
-    const data = status === 'rejected' && reason ? { reason } : {};
+    let endpoint, data = {};
+    
+    if (status === 'approved') {
+      endpoint = 'approve';
+    } else if (status === 'rejected') {
+      endpoint = 'reject';
+      if (reason) data = { reason };
+    } else if (status === 'claimed') {
+      endpoint = 'claim-status';
+      data = { status: 'claimed' };
+    } else {
+      throw new Error(`Unsupported status: ${status}`);
+    }
+    
     const response = await api.put(`/meal-allowance/${id}/${endpoint}`, data);
     return response.data;
   } catch (error) {
     console.error('Error updating meal allowance status:', error);
+    throw error;
+  }
+};
+
+export const directApproveMealAllowance = async (claimData) => {
+  try {
+    const response = await api.post('/meal-allowance/direct-approve', claimData);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating direct approval:', error);
     throw error;
   }
 };
@@ -148,7 +170,8 @@ export const mealAllowanceService = {
   getMealAllowanceManagement,
   getEmployeeAttendanceDetail,
   getMealAllowanceStats,
-  updateMealAllowanceStatus
+  updateMealAllowanceStatus,
+  directApproveMealAllowance
 };
 
 export default mealAllowanceService;
