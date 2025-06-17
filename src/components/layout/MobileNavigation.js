@@ -1,4 +1,4 @@
-import { Coffee, Users, LogOut, Monitor, Settings, Menu as MenuIcon, Package, ShoppingCart, FileText, DollarSign, TrendingUp, Clipboard, Eye } from 'lucide-react';
+import { Coffee, Users, LogOut, Monitor, Settings, Menu as MenuIcon, Package, ShoppingCart, FileText, DollarSign, TrendingUp, Clipboard, Eye, Clock } from 'lucide-react';
 
 const MobileNavigation = ({ mobileMenuOpen, setMobileMenuOpen, activeTab, setActiveTab, user, logout, isAdmin }) => {
   const userRole = user?.role?.name; // Mengambil nama role dari object role
@@ -11,14 +11,14 @@ const MobileNavigation = ({ mobileMenuOpen, setMobileMenuOpen, activeTab, setAct
     
     const adminItems = [
       { id: 'attendance', label: 'Attendance', icon: Clipboard, roles: ['admin'] },
+      { id: 'attendance-history', label: 'Attendance History', icon: Clock, roles: ['admin'] },
       { id: 'management-allowance-meal', label: 'Management Allowance Meal', icon: Eye, roles: ['admin'] },
       { id: 'settings', label: 'Settings', icon: Settings, roles: ['admin'] }
     ];
     
     const employeeItems = [
       { id: 'individual-attendance', label: 'My Attendance', icon: Clipboard, roles: ['employee'] },
-      { id: 'meal-allowance', label: 'Meal Allowance', icon: DollarSign, roles: ['employee'] },
-      { id: 'kitchen', label: 'Kitchen', icon: ShoppingCart, roles: ['employee'] }
+      { id: 'meal-allowance', label: 'Meal Allowance', icon: DollarSign, roles: ['employee'] }
     ];
     
     const viewerItems = [

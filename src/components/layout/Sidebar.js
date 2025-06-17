@@ -66,6 +66,17 @@ const Sidebar = ({ user, logout, isAdmin, activeTab, setActiveTab, sidebarCollap
               <Eye className="w-5 h-5 mr-3" />
               {!sidebarCollapsed && <span>Management Allowance Meal</span>}
             </button>
+
+            <button 
+              onClick={() => setActiveTab('attendance-history')}
+              className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'px-4'} py-3 w-full text-left ${
+                activeTab === 'attendance-history' ? 'bg-gray-700' : 'hover:bg-gray-700'
+              }`}
+              title="Attendance History"
+            >
+              <Clock className="w-5 h-5 mr-3" />
+              {!sidebarCollapsed && <span>Attendance History</span>}
+            </button>
             
             {/* Settings */}
             <div className={`px-4 mt-6 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider ${sidebarCollapsed ? 'sr-only' : ''}`}>
@@ -120,6 +131,16 @@ const Sidebar = ({ user, logout, isAdmin, activeTab, setActiveTab, sidebarCollap
             >
               <Eye className="w-5 h-5 mr-3" />
               {!sidebarCollapsed && <span>View Reports</span>}
+            </button>
+            <button 
+              onClick={() => setActiveTab('attendance-history')}
+              className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'px-4'} py-3 w-full text-left ${
+                activeTab === 'attendance-history' ? 'bg-gray-700' : 'hover:bg-gray-700'
+              }`}
+              title="Attendance History"
+            >
+              <Clock className="w-5 h-5 mr-3" />
+              {!sidebarCollapsed && <span>Attendance History</span>}
             </button>
           </>
         )}

@@ -61,6 +61,9 @@ func Setup(app *fiber.App, db *gorm.DB, cfg *config.Config) {
 	attendance.Get("/stats", attendanceHandler.GetAttendanceStats)
 	attendance.Get("/today", attendanceHandler.GetTodayAttendance)
 	attendance.Get("/employee/:userId/detail", attendanceHandler.GetEmployeeAttendanceDetail)
+	attendance.Get("/history", attendanceHandler.GetAttendanceHistory)
+	attendance.Get("/history/stats", attendanceHandler.GetAttendanceStatsByPeriod)
+	attendance.Get("/history/export", attendanceHandler.ExportAttendanceHistory)
 	attendance.Put("/:id", attendanceHandler.UpdateAttendance)
 	attendance.Delete("/:id", attendanceHandler.DeleteAttendance)
 

@@ -15,6 +15,7 @@ import MealAllowance from '../attendance/MealAllowance';
 import StaffManagement from '../settings/StaffManagement';
 import AuditLogs from '../settings/AuditLogs';
 import IndividualAttendance from '../attendance/IndividualAttendance';
+import AttendanceHistory from '../attendance/AttendanceHistory';
 import { useAuth } from '../../context/AuthContext';
 import EmployeeDashboard from '../dashboard/EmployeeDashboard';
 import LocationManagement from '../settings/LocationManagement';
@@ -282,6 +283,12 @@ const TabContent = ({ activeTab, settingsTab, setSettingsTab, state, handlers, i
               role: userRole
             }}
           />
+        ) : <AccessDenied />
+      )}
+      
+      {activeTab === 'attendance-history' && (
+        hasAccess('admin') ? (
+          <AttendanceHistory {...state} {...handlers} />
         ) : <AccessDenied />
       )}
       

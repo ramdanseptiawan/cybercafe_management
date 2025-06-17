@@ -25,6 +25,8 @@ func NewAttendanceHandler(db *gorm.DB, cfg *config.Config) *AttendanceHandler {
 	return &AttendanceHandler{db: db, cfg: cfg}
 }
 
+
+
 type CheckInRequest struct {
 	Latitude  float64 `json:"latitude" validate:"required"`
 	Longitude float64 `json:"longitude" validate:"required"`
