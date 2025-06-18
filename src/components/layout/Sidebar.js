@@ -23,21 +23,6 @@ const Sidebar = ({ user, logout, isAdmin, activeTab, setActiveTab, sidebarCollap
       </div>
       
       <nav className="flex-1 overflow-y-auto py-4">
-        {/* Dashboard - Available for all roles */}
-        <div className={`px-4 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider ${sidebarCollapsed ? 'sr-only' : ''}`}>
-          Dashboard
-        </div>
-        <button 
-          onClick={() => setActiveTab('dashboard')}
-          className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'px-4'} py-3 w-full text-left ${
-            activeTab === 'dashboard' ? 'bg-gray-700' : 'hover:bg-gray-700'
-          }`}
-          title="Dashboard"
-        >
-          <TrendingUp className="w-5 h-5 mr-3" />
-          {!sidebarCollapsed && <span>Dashboard</span>}
-        </button>
-        
         {/* ADMIN ONLY MENUS */}
         {userRole === 'admin' && (
           <>

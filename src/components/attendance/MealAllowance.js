@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
   getMealAllowancePreview, 
-  claimMealAllowance, 
   getMyMealAllowances 
 } from '../../services/mealAllowanceService';
 import './MealAllowance.css';
@@ -13,9 +12,6 @@ const MealAllowance = ({ currentUser }) => {
   const [claims, setClaims] = useState([]);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [claimNotes, setClaimNotes] = useState('');
-  const [claiming, setClaiming] = useState(false);
-  const [showClaimForm, setShowClaimForm] = useState(false);
 
   const months = [
     { value: 1, label: 'Januari' },
@@ -73,43 +69,7 @@ const MealAllowance = ({ currentUser }) => {
     }
   };
 
-  const handleClaim = async () => {
-    if (!preview || !preview.can_claim) {
-      alert('Tidak dapat mengajukan klaim untuk bulan ini');
-      return;
-    }
 
-    try {
-      setClaiming(true);
-      setError(null);
-      
-      const claimData = {
-        month: selectedMonth,
-        year: selectedYear,
-        notes: claimNotes
-      };
-      
-      console.log('Claiming with data:', claimData);
-      
-      const response = await claimMealAllowance(claimData);
-      console.log('Claim response:', response);
-      
-      if (response && response.success) {
-        alert('Klaim tunjangan makan berhasil diajukan!');
-        setClaimNotes('');
-        setShowClaimForm(false);
-        await fetchData(); // Refresh data
-      } else {
-        throw new Error(response?.message || 'Gagal mengajukan klaim');
-      }
-      
-    } catch (err) {
-      console.error('Error claiming meal allowance:', err);
-      setError(err.message || 'Gagal mengajukan klaim tunjangan makan');
-    } finally {
-      setClaiming(false);
-    }
-  };
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('id-ID', {
@@ -222,25 +182,16 @@ const MealAllowance = ({ currentUser }) => {
               </div>
             </div>
             
-            <div className="preview-actions">
+            <div className="preview-status">
               {preview.already_claimed ? (
                 <div className="claim-status">
                   <i className="fas fa-check-circle"></i>
-                  <span>Sudah diklaim - Status: {getStatusBadge(preview.claim_status)}</span>
+                  <span>Status: {getStatusBadge(preview.claim_status)}</span>
                 </div>
-              ) : preview.can_claim ? (
-                <button 
-                  className="btn-claim"
-                  onClick={() => setShowClaimForm(true)}
-                  disabled={claiming}
-                >
-                  <i className="fas fa-hand-holding-usd"></i>
-                  Ajukan Klaim
-                </button>
               ) : (
-                <div className="cannot-claim">
-                  <i className="fas fa-info-circle"></i>
-                  <span>Tidak dapat mengajukan klaim untuk periode ini</span>
+                <div className="claim-status">
+                  <i className="fas fa-clock"></i>
+                  <span>Status: Belum diklaim</span>
                 </div>
               )}
             </div>
@@ -253,67 +204,7 @@ const MealAllowance = ({ currentUser }) => {
         )}
       </div>
 
-      {/* Claim Form Modal */}
-      {showClaimForm && (
-        <div className="modal-overlay">
-          <div className="claim-form-modal">
-            <div className="modal-header">
-              <h3>Ajukan Klaim Tunjangan Makan</h3>
-              <button 
-                className="close-btn"
-                onClick={() => setShowClaimForm(false)}
-              >
-                <i className="fas fa-times"></i>
-              </button>
-            </div>
-            
-            <div className="modal-body">
-              <div className="claim-summary">
-                <p><strong>Periode:</strong> {months.find(m => m.value === selectedMonth)?.label} {selectedYear}</p>
-                <p><strong>Kehadiran Valid:</strong> {preview?.valid_attendance || 0} hari</p>
-                <p><strong>Total Klaim:</strong> {formatCurrency(preview?.total_amount || 0)}</p>
-              </div>
-              
-              <div className="form-group">
-                <label>Catatan (Opsional):</label>
-                <textarea
-                  value={claimNotes}
-                  onChange={(e) => setClaimNotes(e.target.value)}
-                  placeholder="Tambahkan catatan untuk klaim ini..."
-                  rows={3}
-                />
-              </div>
-            </div>
-            
-            <div className="modal-footer">
-              <button 
-                className="btn-cancel"
-                onClick={() => setShowClaimForm(false)}
-                disabled={claiming}
-              >
-                Batal
-              </button>
-              <button 
-                className="btn-submit"
-                onClick={handleClaim}
-                disabled={claiming}
-              >
-                {claiming ? (
-                  <>
-                    <i className="fas fa-spinner fa-spin"></i>
-                    Mengajukan...
-                  </>
-                ) : (
-                  <>
-                    <i className="fas fa-check"></i>
-                    Ajukan Klaim
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* Claims History */}
       <div className="claims-history">

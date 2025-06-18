@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Clock, Calendar, Camera, BarChart3, History } from 'lucide-react';
+import { User, Clock, Calendar, Camera, BarChart3, History, CheckCircle, XCircle, X } from 'lucide-react';
 import IndividualCheckIn from './IndividualCheckIn';
 import IndividualHistory from './IndividualHistory';
 import IndividualStats from './IndividualStats';
@@ -11,6 +11,20 @@ const IndividualAttendance = ({ currentUser }) => {
   const [todayAttendance, setTodayAttendance] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [snackbar, setSnackbar] = useState({ show: false, message: '', type: 'success' });
+
+  // Function to show snackbar
+  const showSnackbar = (message, type = 'success') => {
+    setSnackbar({ show: true, message, type });
+    setTimeout(() => {
+      setSnackbar({ show: false, message: '', type: 'success' });
+    }, 3000);
+  };
+
+  // Function to hide snackbar
+  const hideSnackbar = () => {
+    setSnackbar({ show: false, message: '', type: 'success' });
+  };
 
   // Fetch attendance data from backend
   const fetchAttendanceData = async () => {
@@ -156,14 +170,12 @@ const IndividualAttendance = ({ currentUser }) => {
         // Check out
         console.log('[INDIVIDUAL ATTENDANCE] Performing check-out...');
         response = await attendanceService.checkOut(formData);
-        // ✅ HAPUS alert, ganti dengan console log
-        console.log('✅ Check-out berhasil!');
+        showSnackbar('Check-out berhasil!', 'success');
       } else {
         // Check in
         console.log('[INDIVIDUAL ATTENDANCE] Performing check-in...');
         response = await attendanceService.checkIn(formData);
-        // ✅ HAPUS alert, ganti dengan console log
-        console.log('✅ Check-in berhasil!');
+        showSnackbar('Check-in berhasil!', 'success');
       }
       
       console.log('[INDIVIDUAL ATTENDANCE] Attendance response:', response);
@@ -173,7 +185,9 @@ const IndividualAttendance = ({ currentUser }) => {
       
     } catch (error) {
       console.error('[INDIVIDUAL ATTENDANCE] Failed to submit attendance:', error);
-      setError(error.message || 'Gagal menyimpan data absensi');
+      const errorMessage = error.message || 'Gagal menyimpan data absensi';
+      setError(errorMessage);
+      showSnackbar(errorMessage, 'error');
       throw error;
     } finally {
       setLoading(false);
@@ -249,8 +263,35 @@ const IndividualAttendance = ({ currentUser }) => {
     }
   };
 
+  // Snackbar Component
+  const Snackbar = () => {
+    if (!snackbar.show) return null;
+
+    return (
+      <div className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg transition-all duration-300 ${
+        snackbar.type === 'success' 
+          ? 'bg-green-500 text-white' 
+          : 'bg-red-500 text-white'
+      }`}>
+        {snackbar.type === 'success' ? (
+          <CheckCircle size={20} />
+        ) : (
+          <XCircle size={20} />
+        )}
+        <span className="font-medium">{snackbar.message}</span>
+        <button 
+          onClick={hideSnackbar}
+          className="ml-2 hover:bg-white hover:bg-opacity-20 rounded-full p-1 transition-colors"
+        >
+          <X size={16} />
+        </button>
+      </div>
+    );
+  };
+
   return (
-    <div className="p-6 bg-white rounded-lg shadow-sm">
+    <>
+      <div className="p-6 bg-white rounded-lg shadow-sm">
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-2">
@@ -301,155 +342,12 @@ const IndividualAttendance = ({ currentUser }) => {
 
       {/* Content */}
       {renderContent()}
-    </div>
+      </div>
+      
+      {/* Snackbar */}
+      <Snackbar />
+    </>
   );
 };
 
 export default IndividualAttendance;
-
-
-const handleCheckIn = async () => {
-  if (!photoData) {
-    console.error('No photo data available for check-in');
-    return;
-  }
-  
-  setIsLoading(true);
-  
-  try {
-    console.log('Starting check-in process with photo:', {
-      hasBlob: !!photoData.blob,
-      hasUrl: !!photoData.url,
-      size: photoData.blob?.size,
-      type: photoData.blob?.type
-    });
-    
-    // Validasi foto sebelum upload
-    if (!photoData.blob || photoData.blob.size < 1024) {
-      throw new Error('Foto tidak valid atau terlalu kecil');
-    }
-    
-    if (photoData.blob.size > 10 * 1024 * 1024) { // Max 10MB
-      throw new Error('Ukuran foto terlalu besar (maksimal 10MB)');
-    }
-    
-    // Buat FormData dengan blob langsung
-    const formData = new FormData();
-    formData.append('employee_id', employeeId);
-    
-    // Generate unique filename dengan timestamp
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filename = `checkin-${employeeId}-${timestamp}.jpg`;
-    
-    formData.append('photo', photoData.blob, filename);
-    
-    console.log('Uploading photo:', {
-      filename: filename,
-      size: photoData.blob.size,
-      type: photoData.blob.type
-    });
-    
-    const response = await fetch('http://localhost:8080/api/attendance/checkin', {
-      method: 'POST',
-      body: formData,
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Check-in failed: ${errorText}`);
-    }
-    
-    const result = await response.json();
-    console.log('Check-in successful:', result);
-    
-    // Hapus alert, ganti dengan console log
-    console.log('✅ Check-in berhasil!');
-    
-    // Reset photo data
-    setPhotoData(null);
-    
-    // Refresh attendance data
-    if (onAttendanceUpdate) {
-      onAttendanceUpdate();
-    }
-    
-  } catch (error) {
-    console.error('Check-in error:', error);
-    // Tampilkan error ke user jika perlu
-  } finally {
-    setIsLoading(false);
-  }
-};
-
-const handleCheckOut = async () => {
-  if (!photoData) {
-    console.error('No photo data available for check-out');
-    return;
-  }
-  
-  setIsLoading(true);
-  
-  try {
-    console.log('Starting check-out process with photo:', {
-      hasBlob: !!photoData.blob,
-      hasUrl: !!photoData.url,
-      size: photoData.blob?.size,
-      type: photoData.blob?.type
-    });
-    
-    // Validasi foto sebelum upload
-    if (!photoData.blob || photoData.blob.size < 1024) {
-      throw new Error('Foto tidak valid atau terlalu kecil');
-    }
-    
-    if (photoData.blob.size > 10 * 1024 * 1024) { // Max 10MB
-      throw new Error('Ukuran foto terlalu besar (maksimal 10MB)');
-    }
-    
-    // Buat FormData dengan blob langsung
-    const formData = new FormData();
-    formData.append('employee_id', employeeId);
-    
-    // Generate unique filename dengan timestamp
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filename = `checkout-${employeeId}-${timestamp}.jpg`;
-    
-    formData.append('photo', photoData.blob, filename);
-    
-    console.log('Uploading photo:', {
-      filename: filename,
-      size: photoData.blob.size,
-      type: photoData.blob.type
-    });
-    
-    const response = await fetch('http://localhost:8080/api/attendance/checkout', {
-      method: 'POST',
-      body: formData,
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Check-out failed: ${errorText}`);
-    }
-    
-    const result = await response.json();
-    console.log('Check-out successful:', result);
-    
-    // Hapus alert, ganti dengan console log
-    console.log('✅ Check-out berhasil!');
-    
-    // Reset photo data
-    setPhotoData(null);
-    
-    // Refresh attendance data
-    if (onAttendanceUpdate) {
-      onAttendanceUpdate();
-    }
-    
-  } catch (error) {
-    console.error('Check-out error:', error);
-    // Tampilkan error ke user jika perlu
-  } finally {
-    setIsLoading(false);
-  }
-};

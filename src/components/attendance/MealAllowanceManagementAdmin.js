@@ -90,34 +90,10 @@ const MealAllowanceManagementAdmin = () => {
     }
   };
 
-  const handleMarkAsClaimed = async (claimId) => {
-    if (!confirm('Apakah Anda yakin ingin menandai klaim ini sebagai sudah diklaim?')) {
-      return;
-    }
-    
-    try {
-      setUpdating(claimId);
-      await updateMealAllowanceStatus(claimId, 'claimed');
-      
-      // Update claims state
-      setClaims((claims || []).map(claim => 
-        claim.id === claimId 
-          ? { ...claim, status: 'claimed', updated_at: new Date().toISOString() }
-          : claim
-      ));
-      
-      // Refresh data
-      await fetchData();
-    } catch (err) {
-      console.error('Error marking claim as claimed:', err);
-      alert('Gagal menandai klaim sebagai sudah diklaim');
-    } finally {
-      setUpdating(null);
-    }
-  };
+
 
   const handleDirectApprove = async (employee) => {
-    if (!window.confirm(`Apakah Anda yakin ingin menyetujui langsung uang makan untuk ${employee.name}?`)) {
+    if (!window.confirm(`Apakah Anda yakin ingin menyetujui dan menandai sebagai sudah klaim uang makan untuk ${employee.name}?`)) {
       return;
     }
 
@@ -135,7 +111,7 @@ const MealAllowanceManagementAdmin = () => {
        
        // Refresh data
        await fetchData();
-       alert('Uang makan berhasil disetujui langsung!');
+       alert('Uang makan berhasil disetujui dan ditandai sebagai sudah klaim!');
      } catch (error) {
        console.error('Error approving meal allowance:', error);
        alert('Gagal menyetujui uang makan. Silakan coba lagi.');
@@ -144,45 +120,7 @@ const MealAllowanceManagementAdmin = () => {
      }
    };
 
-  const handleDirectClaim = async (employee) => {
-    if (!window.confirm(`Apakah Anda yakin ingin menandai uang makan ${employee.name} sebagai sudah diklaim?`)) {
-      return;
-    }
 
-    setUpdating(employee.user_id);
-    try {
-      // Find the approved claim for this employee
-      const approvedClaim = claims.find(claim => 
-        claim.user_id === employee.user_id && 
-        claim.status === 'approved' &&
-        claim.month === selectedMonth &&
-        claim.year === selectedYear
-      );
-
-      if (!approvedClaim) {
-        alert('Tidak ditemukan klaim yang disetujui untuk pegawai ini.');
-        return;
-      }
-
-      await updateMealAllowanceStatus(approvedClaim.id, 'claimed');
-      
-      // Update claims state
-      setClaims((claims || []).map(claim => 
-        claim.id === approvedClaim.id 
-          ? { ...claim, status: 'claimed', updated_at: new Date().toISOString() }
-          : claim
-      ));
-      
-      // Refresh data
-      await fetchData();
-      alert('Status berhasil diubah menjadi sudah diklaim!');
-    } catch (error) {
-      console.error('Error marking as claimed:', error);
-      alert('Gagal mengubah status. Silakan coba lagi.');
-    } finally {
-      setUpdating(null);
-    }
-  };
 
   const handleExportCSV = () => {
     if (!data || !data.employees) return;
@@ -223,24 +161,18 @@ const MealAllowanceManagementAdmin = () => {
   const filteredEmployees = data?.employees?.filter(emp => {
     const matchesSearch = emp.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filters.status === 'all' || 
-      (filters.status === 'claimed' && emp.claim_status) ||
-      (filters.status === 'unclaimed' && !emp.claim_status);
+      (filters.status === 'claimed' && (emp.claim_status === 'approved' || emp.claim_status === 'claimed')) ||
+      (filters.status === 'unclaimed' && (!emp.claim_status || emp.claim_status === 'pending'));
     return matchesSearch && matchesStatus;
   }) || [];
 
   const getStatusIcon = (status) => {
-    if (status === 'approved') return <CheckCircle className="w-4 h-4 text-green-500" />;
-    if (status === 'rejected') return <XCircle className="w-4 h-4 text-red-500" />;
-    if (status === 'pending') return <Clock className="w-4 h-4 text-yellow-500" />;
-    if (status === 'claimed') return <CheckCircle className="w-4 h-4 text-blue-500" />;
+    if (status === 'approved' || status === 'claimed') return <CheckCircle className="w-4 h-4 text-green-500" />;
     return <XCircle className="w-4 h-4 text-gray-400" />;
   };
 
   const getStatusText = (status) => {
-    if (status === 'approved') return 'Disetujui';
-    if (status === 'rejected') return 'Ditolak';
-    if (status === 'pending') return 'Menunggu';
-    if (status === 'claimed') return 'Sudah Klaim';
+    if (status === 'approved' || status === 'claimed') return 'Sudah Disetujui/Sudah Klaim';
     return 'Belum Klaim';
   };
 
@@ -498,35 +430,20 @@ const MealAllowanceManagementAdmin = () => {
                         </button>
                         
                         {/* Admin Action Buttons */}
-                         {(!employee.claim_status || employee.claim_status === 'pending') && (
-                           <button
-                             onClick={() => handleDirectApprove(employee)}
-                             disabled={updating === employee.user_id}
-                             className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                           >
-                             {updating === employee.user_id ? (
-                               <div className="w-3 h-3 mr-1 border border-green-600 border-t-transparent rounded-full animate-spin" />
-                             ) : (
-                               <CheckCircle className="w-3 h-3 mr-1" />
-                             )}
-                             Setujui Langsung
-                           </button>
-                         )}
-                         
-                         {employee.claim_status === 'approved' && (
-                           <button
-                             onClick={() => handleDirectClaim(employee)}
-                             disabled={updating === employee.user_id}
-                             className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                           >
-                             {updating === employee.user_id ? (
-                               <div className="w-3 h-3 mr-1 border border-blue-600 border-t-transparent rounded-full animate-spin" />
-                             ) : (
-                               <Check className="w-3 h-3 mr-1" />
-                             )}
-                             Tandai Sudah Klaim
-                           </button>
-                         )}
+                          {(!employee.claim_status || employee.claim_status === 'pending') && (
+                            <button
+                              onClick={() => handleDirectApprove(employee)}
+                              disabled={updating === employee.user_id}
+                              className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {updating === employee.user_id ? (
+                                <div className="w-3 h-3 mr-1 border border-green-600 border-t-transparent rounded-full animate-spin" />
+                              ) : (
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                              )}
+                              Setujui/Klaim
+                            </button>
+                          )}
                       </div>
                     </td>
                   </tr>

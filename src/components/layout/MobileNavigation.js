@@ -5,9 +5,7 @@ const MobileNavigation = ({ mobileMenuOpen, setMobileMenuOpen, activeTab, setAct
   
   // Define menu items based on role
   const getMenuItems = () => {
-    const baseItems = [
-      { id: 'dashboard', label: 'Dashboard', icon: TrendingUp, roles: ['admin', 'employee', 'viewer'] }
-    ];
+    const baseItems = [];
     
     const adminItems = [
       { id: 'attendance', label: 'Attendance', icon: Clipboard, roles: ['admin'] },

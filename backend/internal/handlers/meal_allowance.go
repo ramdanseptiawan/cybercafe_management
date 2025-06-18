@@ -465,7 +465,7 @@ func (h *MealAllowanceHandler) DirectApproveMealAllowance(c *fiber.Ctx) error {
 		ValidAttendance: 0,  // Will be calculated based on actual attendance
 		AmountPerDay:    0,  // Will be set from policy
 		TotalAmount:     req.Amount,
-		Status:          "approved",
+		Status:          "claimed",
 		ClaimDate:       now,
 		ApprovedBy:      &approverUUID,
 		ApprovedAt:      &now,
