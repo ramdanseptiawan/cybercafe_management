@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8080/api';
+const API_URL = 'https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api';
 
 const api = axios.create({
   baseURL: API_URL,

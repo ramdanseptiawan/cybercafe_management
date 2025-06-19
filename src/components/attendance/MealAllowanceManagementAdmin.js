@@ -569,10 +569,10 @@ const MealAllowanceManagementAdmin = () => {
                               </div>
                               {attendance.photo_path && (
                                 <img 
-                                  src={`http://localhost:8080${attendance.photo_path}`}
+                                  src={`https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev${attendance.photo_path}`}
                                   alt="Check In Photo"
                                   className="w-16 h-16 object-cover rounded mt-1 cursor-pointer"
-                                  onClick={() => window.open(`http://localhost:8080${attendance.photo_path}`, '_blank')}
+                                  onClick={() => window.open(`https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev${attendance.photo_path}`, '_blank')}
                                 />
                               )}
                             </div>
@@ -589,10 +589,10 @@ const MealAllowanceManagementAdmin = () => {
                               </div>
                               {attendance.check_out_photo_path && (
                                 <img 
-                                  src={`http://localhost:8080${attendance.check_out_photo_path}`}
+                                  src={`https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev${attendance.check_out_photo_path}`}
                                   alt="Check Out Photo"
                                   className="w-16 h-16 object-cover rounded mt-1 cursor-pointer"
-                                  onClick={() => window.open(`http://localhost:8080${attendance.check_out_photo_path}`, '_blank')}
+                                  onClick={() => window.open(`https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev${attendance.check_out_photo_path}`, '_blank')}
                                 />
                               )}
                             </div>

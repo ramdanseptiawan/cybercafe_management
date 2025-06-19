@@ -123,9 +123,7 @@ const AttendanceHistory = () => {
   };
 
   const getStatusBadge = (record) => {
-    const isCheckedOut = record.check_out_time;
     const checkInTime = new Date(record.check_in_time);
-    const workingHours = record.working_hours || 0;
     
     let status = 'present';
     let bgColor = 'bg-green-100 text-green-800';
@@ -136,13 +134,6 @@ const AttendanceHistory = () => {
       status = 'late';
       bgColor = 'bg-yellow-100 text-yellow-800';
       text = 'Terlambat';
-    }
-    
-    // Check if incomplete (not checked out or working hours < 8)
-    if (!isCheckedOut || workingHours < 8) {
-      status = 'incomplete';
-      bgColor = 'bg-red-100 text-red-800';
-      text = 'Tidak Lengkap';
     }
     
     return (
@@ -260,7 +251,6 @@ const AttendanceHistory = () => {
               <option value="">Semua Status</option>
               <option value="present">Hadir</option>
               <option value="late">Terlambat</option>
-              <option value="incomplete">Tidak Lengkap</option>
             </select>
           </div>
 
@@ -517,10 +507,10 @@ const AttendanceHistory = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Foto Check In</label>
                     <img
-                      src={`http://localhost:8080${selectedRecord.photo_path}`}
+                      src={`https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev${selectedRecord.photo_path}`}
                       alt="Check In Photo"
                       className="w-32 h-32 object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-80"
-                      onClick={() => window.open(`http://localhost:8080${selectedRecord.photo_path}`, '_blank')}
+                      onClick={() => window.open(`https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev${selectedRecord.photo_path}`, '_blank')}
                     />
                   </div>
                 )}
@@ -529,10 +519,10 @@ const AttendanceHistory = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Foto Check Out</label>
                     <img
-                      src={`http://localhost:8080${selectedRecord.check_out_photo_path}`}
+                      src={`https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev${selectedRecord.check_out_photo_path}`}
                       alt="Check Out Photo"
                       className="w-32 h-32 object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-80"
-                      onClick={() => window.open(`http://localhost:8080${selectedRecord.check_out_photo_path}`, '_blank')}
+                      onClick={() => window.open(`https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev${selectedRecord.check_out_photo_path}`, '_blank')}
                     />
                   </div>
                 )}

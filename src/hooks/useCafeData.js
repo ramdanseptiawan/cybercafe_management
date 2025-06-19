@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { initialData } from '../data/initialData';
 import { useAuditLogs } from './useAuditLogs';
 import { useStockData } from './useStockData';
@@ -7,8 +7,10 @@ import { useCustomerData } from './useCustomerData';
 import { useStaffData } from './useStaffData';
 import { attendanceService } from '../services/attendanceService';
 import mealAllowanceService, { getMealAllowancePreview } from '../services/mealAllowanceService';
+import { useAuth } from '../context/AuthContext';
 
 export const useCafeData = () => {
+  const { user } = useAuth();
   const { transactionsData, computersData, activeSessionsData, timePackagesData, ordersData } = initialData;
   
   // UI State
@@ -50,6 +52,21 @@ export const useCafeData = () => {
   const customerData = useCustomerData();
   const staffData = useStaffData();
   const { auditLogs, logAction } = useAuditLogs();
+
+  // Set default tab based on user role
+  useEffect(() => {
+    if (user) {
+      const userRole = user.role?.name || user.role;
+      // Admin should go to attendance dashboard, employees to employee-dashboard
+      if (userRole === 'admin') {
+        setActiveTab('attendance');
+      } else if (userRole === 'employee') {
+        setActiveTab('employee-dashboard');
+      } else {
+        setActiveTab('dashboard');
+      }
+    }
+  }, [user]);
 
   // Fetch attendance data
   useEffect(() => {

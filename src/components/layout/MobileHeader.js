@@ -7,6 +7,7 @@ const MobileHeader = ({ user, logout, activeTab, isAdmin }) => {
         <h1 className="text-xl font-bold text-gray-800">CyberCafe</h1>
         <p className="text-sm text-gray-600 capitalize">
           {activeTab === 'dashboard' ? 'Dashboard' :
+           activeTab === 'employee-dashboard' ? 'Employee Dashboard' :
            activeTab === 'computers' ? 'Computer Management' :
            activeTab === 'customers' ? 'Customer Management' :
            activeTab === 'menu' ? 'Menu Management' :

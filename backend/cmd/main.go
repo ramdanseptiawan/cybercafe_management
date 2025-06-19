@@ -48,10 +48,11 @@ func main() {
 	app.Use(logger.New())
 	app.Use(recover.New())
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: cfg.AllowedOrigins,
-		AllowMethods: "GET,POST,PUT,DELETE,OPTIONS",
-		AllowHeaders: "Origin,Content-Type,Accept,Authorization",
-	}))
+        AllowOrigins: "*",
+        AllowMethods: "GET,POST,PUT,DELETE,OPTIONS",
+        AllowHeaders: "Origin,Content-Type,Accept,Authorization",
+        AllowCredentials: false, // Must be false when AllowOrigins is "*"
+    }))
 
 	// Static files for uploads
 	app.Static("/uploads", cfg.UploadPath)

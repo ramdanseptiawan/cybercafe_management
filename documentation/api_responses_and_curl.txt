@@ -1,5 +1,5 @@
 # CYBERCAFE MANAGEMENT SYSTEM - API RESPONSES & CURL COMMANDS
-# Base URL: http://localhost:8080
+# Base URL: https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev
 
 ## 1. AUTHENTICATION APIs
 
@@ -7,7 +7,7 @@
 POST /api/auth/login
 
 CURL:
-curl -X POST http://localhost:8080/api/auth/login \
+curl -X POST https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "username": "admin",
@@ -46,7 +46,7 @@ Response (Error):
 GET /api/auth/me
 
 CURL:
-curl -X GET http://localhost:8080/api/auth/me \
+curl -X GET https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/auth/me \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 
 Response:
@@ -73,7 +73,7 @@ Response:
 POST /api/auth/logout
 
 CURL:
-curl -X POST http://localhost:8080/api/auth/logout \
+curl -X POST https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/auth/logout \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 
 Response:
@@ -88,7 +88,7 @@ Response:
 GET /api/roles
 
 CURL:
-curl -X GET "http://localhost:8080/api/roles?is_active=true&search=admin" \
+curl -X GET "https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/roles?is_active=true&search=admin" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 
 Response:
@@ -122,7 +122,7 @@ Response:
 POST /api/roles
 
 CURL:
-curl -X POST http://localhost:8080/api/roles \
+curl -X POST https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/roles \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -151,7 +151,7 @@ Response:
 GET /api/roles/{id}
 
 CURL:
-curl -X GET http://localhost:8080/api/roles/1 \
+curl -X GET https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/roles/1 \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 
 Response:
@@ -173,7 +173,7 @@ Response:
 PUT /api/roles/{id}
 
 CURL:
-curl -X PUT http://localhost:8080/api/roles/3 \
+curl -X PUT https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/roles/3 \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -201,7 +201,7 @@ Response:
 DELETE /api/roles/{id}
 
 CURL:
-curl -X DELETE http://localhost:8080/api/roles/3 \
+curl -X DELETE https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/roles/3 \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 
 Response:
@@ -216,7 +216,7 @@ Response:
 GET /api/staff
 
 CURL:
-curl -X GET "http://localhost:8080/api/staff?page=1&limit=20&search=john&department=IT&status=active" \
+curl -X GET "https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/staff?page=1&limit=20&search=john&department=IT&status=active" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 
 Response:
@@ -264,7 +264,7 @@ Response:
 POST /api/staff
 
 CURL:
-curl -X POST http://localhost:8080/api/staff \
+curl -X POST https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/staff \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -320,7 +320,7 @@ Response:
 GET /api/staff/{id}
 
 CURL:
-curl -X GET http://localhost:8080/api/staff/emp_123456 \
+curl -X GET https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/staff/emp_123456 \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 
 Response:
@@ -358,7 +358,7 @@ Response:
 PUT /api/staff/{id}
 
 CURL:
-curl -X PUT http://localhost:8080/api/staff/emp_123456 \
+curl -X PUT https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/staff/emp_123456 \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -386,7 +386,7 @@ Response:
 DELETE /api/staff/{id}
 
 CURL:
-curl -X DELETE http://localhost:8080/api/staff/emp_123456 \
+curl -X DELETE https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/staff/emp_123456 \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 
 Response:
@@ -401,7 +401,7 @@ Response:
 GET /api/locations
 
 CURL:
-curl -X GET "http://localhost:8080/api/locations?type=office&is_active=true&search=main" \
+curl -X GET "https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/locations?type=office&is_active=true&search=main" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 
 Response:
@@ -451,7 +451,7 @@ Response:
 POST /api/locations
 
 CURL:
-curl -X POST http://localhost:8080/api/locations \
+curl -X POST https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/locations \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -495,7 +495,7 @@ Response:
 GET /api/locations/nearby
 
 CURL:
-curl -X GET "http://localhost:8080/api/locations/nearby?latitude=-6.2088&longitude=106.8456&radius=1000" \
+curl -X GET "https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/locations/nearby?latitude=-6.2088&longitude=106.8456&radius=1000" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 
 Response:
@@ -522,7 +522,7 @@ Response:
 POST /api/locations/validate
 
 CURL:
-curl -X POST http://localhost:8080/api/locations/validate \
+curl -X POST https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/locations/validate \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -556,7 +556,7 @@ Response:
 GET /api/locations/{id}
 
 CURL:
-curl -X GET http://localhost:8080/api/locations/1 \
+curl -X GET https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/locations/1 \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 
 Response:
@@ -586,7 +586,7 @@ Response:
 PUT /api/locations/{id}
 
 CURL:
-curl -X PUT http://localhost:8080/api/locations/1 \
+curl -X PUT https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/locations/1 \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -620,7 +620,7 @@ Response:
 DELETE /api/locations/{id}
 
 CURL:
-curl -X DELETE http://localhost:8080/api/locations/3 \
+curl -X DELETE https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/locations/3 \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 
 Response:
@@ -635,7 +635,7 @@ Response:
 POST /api/attendance/check-in
 
 CURL (with file upload):
-curl -X POST http://localhost:8080/api/attendance/check-in \
+curl -X POST https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/attendance/check-in \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -F "photo=@/path/to/photo.jpg" \
   -F "latitude=-6.2088" \
@@ -660,7 +660,7 @@ Response:
       "distance": 45.5,
       "address": "Jl. Sudirman No. 123, Jakarta"
     },
-    "photo_url": "http://localhost:8080/uploads/attendance/checkin_123456.jpg",
+    "photo_url": "https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/uploads/attendance/checkin_123456.jpg",
     "status": "present",
     "is_late": false,
     "notes": "Regular check-in",
@@ -672,7 +672,7 @@ Response:
 POST /api/attendance/check-out
 
 CURL (with file upload):
-curl -X POST http://localhost:8080/api/attendance/check-out \
+curl -X POST https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/attendance/check-out \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -F "photo=@/path/to/photo.jpg" \
   -F "latitude=-6.2088" \
@@ -700,7 +700,7 @@ Response:
       "distance": 52.3,
       "address": "Jl. Sudirman No. 123, Jakarta"
     },
-    "check_out_photo_url": "http://localhost:8080/uploads/attendance/checkout_123456.jpg",
+    "check_out_photo_url": "https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/uploads/attendance/checkout_123456.jpg",
     "status": "completed",
     "notes": "Work completed",
     "updated_at": "2025-01-15T17:30:00Z"
@@ -711,7 +711,7 @@ Response:
 GET /api/attendance/my
 
 CURL:
-curl -X GET "http://localhost:8080/api/attendance/my?page=1&limit=20&month=2025-01" \
+curl -X GET "https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/attendance/my?page=1&limit=20&month=2025-01" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 
 Response:
@@ -734,8 +734,8 @@ Response:
           "address": "Jl. Sudirman No. 123, Jakarta"
         },
         "photos": {
-          "check_in": "http://localhost:8080/uploads/attendance/checkin_123456.jpg",
-          "check_out": "http://localhost:8080/uploads/attendance/checkout_123456.jpg"
+          "check_in": "https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/uploads/attendance/checkin_123456.jpg",
+          "check_out": "https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/uploads/attendance/checkout_123456.jpg"
         },
         "notes": "Regular work day",
         "created_at": "2025-01-15T08:30:00Z",
@@ -755,7 +755,7 @@ Response:
 GET /api/attendance/all
 
 CURL:
-curl -X GET "http://localhost:8080/api/attendance/all?page=1&limit=20&month=2025-01&user_id=usr_123456" \
+curl -X GET "https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/attendance/all?page=1&limit=20&month=2025-01&user_id=usr_123456" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 
 Response:
@@ -782,8 +782,8 @@ Response:
           "address": "Jl. Sudirman No. 123, Jakarta"
         },
         "photos": {
-          "check_in": "http://localhost:8080/uploads/attendance/checkin_123456.jpg",
-          "check_out": "http://localhost:8080/uploads/attendance/checkout_123456.jpg"
+          "check_in": "https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/uploads/attendance/checkin_123456.jpg",
+          "check_out": "https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/uploads/attendance/checkout_123456.jpg"
         },
         "notes": "Regular work day",
         "created_at": "2025-01-15T08:30:00Z",
@@ -803,7 +803,7 @@ Response:
 GET /api/attendance/stats
 
 CURL:
-curl -X GET "http://localhost:8080/api/attendance/stats?month=2025-01" \
+curl -X GET "https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/attendance/stats?month=2025-01" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 
 Response:
@@ -828,7 +828,7 @@ Response:
 GET /api/attendance/today
 
 CURL:
-curl -X GET http://localhost:8080/api/attendance/today \
+curl -X GET https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/attendance/today \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 
 Response:
@@ -849,7 +849,7 @@ Response:
         "longitude": 106.8456,
         "address": "Jl. Sudirman No. 123, Jakarta"
       },
-      "check_in_photo": "http://localhost:8080/uploads/attendance/checkin_123456.jpg",
+      "check_in_photo": "https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/uploads/attendance/checkin_123456.jpg",
       "notes": "Regular check-in",
       "created_at": "2025-01-15T08:30:00Z"
     }
@@ -860,7 +860,7 @@ Response:
 PUT /api/attendance/{id}
 
 CURL:
-curl -X PUT http://localhost:8080/api/attendance/att_123456 \
+curl -X PUT https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/attendance/att_123456 \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -889,7 +889,7 @@ Response:
 DELETE /api/attendance/{id}
 
 CURL:
-curl -X DELETE http://localhost:8080/api/attendance/att_123456 \
+curl -X DELETE https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/attendance/att_123456 \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 
 Response:
@@ -904,7 +904,7 @@ Response:
 GET /api/audit
 
 CURL:
-curl -X GET "http://localhost:8080/api/audit?page=1&limit=20&action=CREATE&table_name=staff&user_id=usr_123456" \
+curl -X GET "https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/audit?page=1&limit=20&action=CREATE&table_name=staff&user_id=usr_123456" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 
 Response:
@@ -972,7 +972,7 @@ Response:
 GET /api/audit/{id}
 
 CURL:
-curl -X GET http://localhost:8080/api/audit/audit_123456 \
+curl -X GET https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/audit/audit_123456 \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 
 Response:
@@ -1139,33 +1139,33 @@ Response (400):
 
 ### Test Authentication
 # Login and save token
-TOKEN=$(curl -s -X POST http://localhost:8080/api/auth/login \
+TOKEN=$(curl -s -X POST https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"admin123"}' | \
   jq -r '.data.token')
 
 # Use token for authenticated requests
-curl -X GET http://localhost:8080/api/auth/me \
+curl -X GET https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/auth/me \
   -H "Authorization: Bearer $TOKEN"
 
 ### Test Complete Workflow
 # 1. Login
-curl -X POST http://localhost:8080/api/auth/login \
+curl -X POST https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"admin123"}'
 
 # 2. Create staff
-curl -X POST http://localhost:8080/api/staff \
+curl -X POST https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/staff \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"employee_id":"EMP003","full_name":"Test User","email":"test@company.com","phone":"+62812345678","position":"Tester","department":"QA","hire_date":"2025-01-15","role_id":2}'
 
 # 3. Check attendance today
-curl -X GET http://localhost:8080/api/attendance/today \
+curl -X GET https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/attendance/today \
   -H "Authorization: Bearer YOUR_TOKEN"
 
 # 4. Check in (requires photo file)
-curl -X POST http://localhost:8080/api/attendance/check-in \
+curl -X POST https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/attendance/check-in \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -F "photo=@test_photo.jpg" \
   -F "latitude=-6.2088" \
@@ -1175,11 +1175,11 @@ curl -X POST http://localhost:8080/api/attendance/check-in \
   -F "address=Test Location"
 
 # 5. Get my attendance
-curl -X GET http://localhost:8080/api/attendance/my \
+curl -X GET https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/attendance/my \
   -H "Authorization: Bearer YOUR_TOKEN"
 
 # 6. Check out
-curl -X POST http://localhost:8080/api/attendance/check-out \
+curl -X POST https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/attendance/check-out \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -F "photo=@test_photo.jpg" \
   -F "latitude=-6.2088" \
@@ -1189,7 +1189,7 @@ curl -X POST http://localhost:8080/api/attendance/check-out \
   -F "address=Test Location"
 
 # 7. View audit logs
-curl -X GET http://localhost:8080/api/audit \
+curl -X GET https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/audit \
   -H "Authorization: Bearer YOUR_TOKEN"
 
 ## 10. ENVIRONMENT SETUP

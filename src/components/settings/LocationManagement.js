@@ -105,7 +105,7 @@ const LocationManagement = () => {
         throw new Error('No authentication token found');
       }
   
-      const response = await fetch('http://localhost:8080/api/attendance/locations', {
+      const response = await fetch('https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/attendance/locations', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -154,8 +154,8 @@ const LocationManagement = () => {
       console.log('Request body:', requestBody);
 
       const url = editingLocation 
-        ? `http://localhost:8080/api/attendance/locations/${editingLocation.id}`
-        : 'http://localhost:8080/api/attendance/locations';
+        ? `https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/attendance/locations/${editingLocation.id}`
+        : 'https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev/api/attendance/locations';
       
       const method = editingLocation ? 'PUT' : 'POST';
       

@@ -141,6 +141,15 @@ const TabContent = ({ activeTab, settingsTab, setSettingsTab, state, handlers, i
         )
       )}
       
+      {activeTab === 'employee-dashboard' && (
+        hasAccess('employee') ? (
+          <EmployeeDashboard 
+            user={user}
+            setActiveTab={handlers.setActiveTab}
+          />
+        ) : <AccessDenied />
+      )}
+      
       {/* ADMIN ONLY SECTIONS */}
       {activeTab === 'stock' && (
         hasAccess('admin') ? (

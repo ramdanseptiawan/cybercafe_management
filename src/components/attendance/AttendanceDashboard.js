@@ -73,6 +73,11 @@ const AttendanceDashboard = () => {
   const calculateTodayStats = (staffData, allAttendance) => {
     const today = new Date().toISOString().split('T')[0];
     
+    // Filter out admin users from staff data for attendance tracking
+    const employeeStaffData = staffData.filter(staff => 
+      staff.role?.name !== 'admin' && staff.role !== 'admin'
+    );
+    
     // Filter today's attendance records
     const todayRecords = allAttendance.filter(record => {
       const recordDate = record.check_in_time ? 
@@ -80,14 +85,18 @@ const AttendanceDashboard = () => {
       return recordDate === today;
     });
     
-    // Get unique users who checked in today
-    const checkedInUserIds = new Set(todayRecords.map(record => record.user_id));
+    // Get unique employee users who checked in today (exclude admin)
+    const employeeIds = new Set(employeeStaffData.map(emp => emp.id));
+    const employeeTodayRecords = todayRecords.filter(record => 
+      employeeIds.has(record.user_id)
+    );
+    const checkedInUserIds = new Set(employeeTodayRecords.map(record => record.user_id));
     
-    // Calculate present (checked in)
+    // Calculate present (checked in employees only)
     const present = checkedInUserIds.size;
     
-    // Calculate late (checked in after 9:00 AM)
-    const late = todayRecords.filter(record => {
+    // Calculate late (checked in after 9:00 AM, employees only)
+    const late = employeeTodayRecords.filter(record => {
       if (record.check_in_time) {
         const checkInTime = new Date(record.check_in_time);
         const workStart = new Date(checkInTime);
@@ -97,18 +106,18 @@ const AttendanceDashboard = () => {
       return false;
     }).length;
     
-    // Calculate absent
-    const absent = staffData.length - present;
+    // Calculate absent (employees only)
+    const absent = employeeStaffData.length - present;
     
     setStats({
       present,
       absent,
       late,
-      total: staffData.length
+      total: employeeStaffData.length
     });
     
-    // Update employee status based on today's attendance
-    const updatedEmployees = staffData.map(emp => {
+    // Update employee status based on today's attendance (exclude admin)
+    const updatedEmployees = employeeStaffData.map(emp => {
       const userAttendance = todayRecords.find(record => record.user_id === emp.id);
       
       if (userAttendance) {

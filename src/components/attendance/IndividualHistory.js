@@ -68,7 +68,7 @@ const IndividualHistory = ({ currentUser }) => {
               }) : '--',
             location: record.address || 'Tidak ada data lokasi',
             // ✅ PERBAIKAN: Tambahkan prefix URL untuk foto
-            photo: record.photo_path ? `http://localhost:8080${record.photo_path}` : null,
+            photo: record.photo_path ? `https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev${record.photo_path}` : null,
             hours: checkOutDate ? 
               calculateHours(record.check_in_time, record.check_out_time) : '--',
             status: determineStatus(record),
@@ -77,8 +77,8 @@ const IndividualHistory = ({ currentUser }) => {
             distance: record.distance,
             notes: record.notes,
             // ✅ PERBAIKAN: Tambahkan prefix URL untuk checkInPhoto
-            checkInPhoto: record.photo_path ? `http://localhost:8080${record.photo_path}` : null,
-            checkOutPhoto: record.check_out_photo_path ? `http://localhost:8080${record.check_out_photo_path}` : null
+            checkInPhoto: record.photo_path ? `https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev${record.photo_path}` : null,
+            checkOutPhoto: record.check_out_photo_path ? `https://8080-firebase-cybercafemanagement-1750128536436.cluster-fdkw7vjj7bgguspe3fbbc25tra.cloudworkstations.dev${record.check_out_photo_path}` : null
           };
         });
         
