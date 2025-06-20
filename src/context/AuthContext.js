@@ -14,18 +14,20 @@ export const AuthProvider = ({ children }) => {
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    // Check if user is logged in
-    const token = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
-    
-    if (token && storedUser) {
-      setUser(JSON.parse(storedUser));
-      // Validate token with backend
-      api.get('/auth/me')
-        .catch(() => {
-          // If token is invalid, log out
-          logout();
-        });
+    // Check if user is logged in (only on client side)
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('token');
+      const storedUser = localStorage.getItem('user');
+      
+      if (token && storedUser) {
+        setUser(JSON.parse(storedUser));
+        // Validate token with backend
+        api.get('/auth/me')
+          .catch(() => {
+            // If token is invalid, log out
+            logout();
+          });
+      }
     }
     setLoading(false);
     setInitialized(true);
