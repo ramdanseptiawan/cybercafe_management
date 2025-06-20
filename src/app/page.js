@@ -1,6 +1,8 @@
 'use client';
 
 import React from 'react';
+
+export const dynamic = 'force-dynamic';
 import { useAuth } from '../context/AuthContext';
 import MainLayout from '../components/layout/MainLayout';
 import { useCafeData } from '../hooks/useCafeData';

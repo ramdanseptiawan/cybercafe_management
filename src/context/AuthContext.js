@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import api from '../services/api';
 
@@ -12,6 +12,21 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
+
+  const logout = useCallback(async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
+      setUser(null);
+      router.push('/login');
+    }
+  }, [router]);
 
   useEffect(() => {
     // Check if user is logged in (only on client side)
@@ -69,20 +84,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = async () => {
-    try {
-      await api.post('/auth/logout');
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-      }
-      setUser(null);
-      router.push('/login');
-    }
-  };
+
 
   const isAdmin = () => {
     return user?.role?.name === 'admin';
