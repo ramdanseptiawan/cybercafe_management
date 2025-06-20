@@ -1,4 +1,5 @@
 import React from 'react';
+import { Shield } from 'lucide-react';
 import Dashboard from '../dashboard/Dashboard';
 import StockManagement from '../stock/StockManagement';
 import MenuManagement from '../menu/MenuManagement';
@@ -400,7 +401,7 @@ const TabContent = ({ activeTab, settingsTab, setSettingsTab, state, handlers, i
                   <div className="text-center py-8">
                     <div className="text-gray-500">
                       <Shield className="mx-auto h-12 w-12 mb-4" />
-                      <p>You don't have permission to access Staff Management.</p>
+                      <p>You don&apos;t have permission to access Staff Management.</p>
                       <p className="text-sm">Only administrators can manage staff members.</p>
                     </div>
                   </div>

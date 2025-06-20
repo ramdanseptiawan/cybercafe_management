@@ -29,7 +29,7 @@ export const AuthProvider = ({ children }) => {
     }
     setLoading(false);
     setInitialized(true);
-  }, []);
+  }, [logout]);
 
   useEffect(() => {
     // Only redirect after initial load and when not loading

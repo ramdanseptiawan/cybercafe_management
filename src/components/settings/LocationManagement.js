@@ -264,8 +264,6 @@ const LocationManagement = () => {
 
   // Map Click Handler Component
   const MapClickHandler = () => {
-    if (!isClient || typeof useMapEvents !== 'function') return null;
-    
     const map = useMapEvents({
       click: (e) => {
         const { lat, lng } = e.latlng;
